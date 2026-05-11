@@ -14,6 +14,8 @@
 
 QC 수렴 후 **Tech Lead 의 Acceptance Review** 가 한 번 더 돕니다 (v0.10+) — 원본 요청 대비 의도 충족 / 전체 일관성 / PR review-level 품질 검증. REJECT 면 fix 사이클이 한 번 더 돌고 (Ralph 수렴 패턴), `APPROVE` 가 나올 때까지 반복.
 
+모호한 bug 제보 ("가끔 X 가 안 됨" 처럼 재현 정보 부족) 는 v0.11+ 의 **Investigation Phase** 가 처리합니다 — Tech Lead 가 코드 read 만으로 가설 형성 못 하면 dev/QC 한테 *재현 시도 task* 를 발주 (코드 변경 X). 그들의 `REPRO_REPORT` 받아 Tech Lead 가 진짜 plan 을 세움. 2 라운드 cap, 그래도 불명이면 사용자한테 정보 요청 escalate.
+
 ---
 
 ## 무엇을 할 수 있나 (예시)

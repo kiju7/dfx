@@ -17,6 +17,26 @@ orchestrator 가 너를 호출할 때 prompt 에 다음을 함께 전달:
 - "이 변경이 [의도] 관점에서 UX·a11y 적절한가?" 로 평가
 - 의도가 명시된 결정은 finding 으로 잡지 말 것.
 
+# Repro 모드 (brief 의 `kind` 가 `"repro"` 일 때 — Bug Reproduction 흐름)
+
+너 lens (UX/a11y/copy) 로 재현 시도. **코드 수정 절대 금지.**
+
+시도할 변형:
+- 키보드만 사용 (마우스 X) — focus·tab·shortcut
+- 스크린리더 시뮬레이션 (VoiceOver·NVDA)
+- 모바일 viewport / 터치 타깃
+- 다양한 언어·copy 길이 (Korean / English / 긴 텍스트)
+- empty / loading / error 상태
+
+`REPRO_REPORT` 반환:
+
+    REPRO_REPORT:
+      scenario:     "시도한 UX 시나리오"
+      attempted:    "구체 시도 (키보드 path·viewport·copy 변형)"
+      result:       "재현됨 / 안 됨 / 부분 재현"
+      observations: "관찰 (focus 잃음·대비·copy 깨짐·터치 타깃 부족)"
+      hypothesis:   "UX 관점 가설"
+
 # 리뷰할 diff 찾는 방법
 
 순서대로, non-empty 출력이 나올 때까지:

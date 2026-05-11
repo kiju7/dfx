@@ -43,6 +43,11 @@ _workspace/<run-id>/
     iter-N.json          # Ralph iter N 의 QC
   05-ralph/
     iter-1.md            # finding 매핑 + dispatch + 결과
+  02b-investigation/     # (조건부) bug repro 흐름 활성화 시
+    round-1/
+      backend-1.md       # REPRO_REPORT
+      qc-edgecase-1.md
+    round-2/
   06-review/
     round-1.json         # Acceptance Review verdict + fix_directives
     round-N.json
@@ -123,6 +128,33 @@ raw JSON 을 `_workspace/${RUN_ID}/01-triage.json` 에 저장.
 sub-task 마다 한 줄: `  · [<role>] <title>`.
 
 Tech Lead 의 raw JSON 응답 (분해 결과 OR branches) 을 `_workspace/${RUN_ID}/02-plan.json` 에 저장.
+
+### 2.5. Investigation Phase (Tech Lead Mode 5b — 조건부, kind=bug + 재현 불명 시)
+
+Tech Lead 가 `investigation: true` 응답 반환하면 (정상 plan 대신):
+
+1. 부모 chat 출력:
+   > 🔬 **Investigation** — 재현 시도 (가설: `<hypothesis 한 줄>`)
+
+2. `subtasks` 들 (모두 `kind: "repro"`) 병렬 spawn:
+   - 각 task 의 prompt 에 brief + `kind: "repro"` 명시
+   - dev / QC 는 코드 변경 없이 재현만 시도 (자세한 동작은 각 agent .md 의 `Repro 모드` 섹션)
+   - 각자 `REPRO_REPORT` 반환 (`TASK_DONE`/`WORK_SUMMARY` 대신)
+
+3. 모든 REPRO_REPORT 수집 → `_workspace/${RUN_ID}/02b-investigation/round-<n>/<role>-<idx>.md` 저장
+
+4. Tech Lead 재호출 (Mode 5c) — context 에 모든 REPRO_REPORT 첨부:
+   - **Mode 1** (가설 명확, normal plan) → Step 3 (Implement) 진행
+   - **Mode 5b** (또 investigation 필요) → 이 step 다시 (단 2 라운드 cap)
+   - **Mode 2** (사용자 escalate, 재현 정보 더 필요) → 3b 처리
+
+상태 라인:
+> 🔬 **Investigation round `<n>`** — `<N>` repro tasks 병렬
+
+라운드 종료:
+> 🔬 **Investigation result** — 재현 `<x>` / 안됨 `<y>` / 부분 `<z>`
+
+**라운드 제한**: 2 라운드 cap. 3 라운드 시도 시 Tech Lead 가 자동 Mode 2 로 전환 (사용자 escalate).
 
 ### 3. Implement (병렬)
 

@@ -53,6 +53,26 @@ C. **영향 범위가 brief 가 암시한 것과 일치하나?**
 세 질문 다 ✅ → 편집 진행, `WORK_SUMMARY + TASK_DONE`.
 하나라도 ❌ → 편집 멈추고 `SUGGEST_REVISION` 반환 (Tech Lead 으로 돌아감).
 
+# Repro 모드 (brief 의 `kind` 가 `"repro"` 일 때 — Bug Reproduction 흐름)
+
+**본 코드 절대 수정 금지.** 재현 시도·가설 검증만.
+
+작업 순서:
+1. brief 의 시나리오 파악 (워커·큐·이벤트·동시성)
+2. 프로젝트 테스트 인프라 있음 → 워커 단위 테스트로 시도
+3. 없음 → `/tmp/forge-repro-<ts>/` 에 spawn → enqueue → assert 시퀀스 격리 작성
+4. 실행 (재시도·동시성 조작 포함), 결과 관찰
+5. `REPRO_REPORT` 반환
+
+    REPRO_REPORT:
+      scenario:     "시도한 시나리오 (입력·재시도·동시성·timing)"
+      attempted:    "구체 시도 (워커 enqueue·이벤트 시퀀스)"
+      result:       "재현됨 / 안 됨 / 부분 재현"
+      observations: "관찰 (재시도 로그·race·timing)"
+      hypothesis:   "이 결과 기반의 가설"
+
+본 코드 (워커·큐 implementation) 수정 절대 금지.
+
 # 출력 (3가지 중 정확히 하나)
 
 ## 1. 정상 완료

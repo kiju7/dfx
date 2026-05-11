@@ -52,6 +52,26 @@ C. **영향 범위가 brief 가 암시한 것과 일치하나?**
 세 질문 다 ✅ → 편집 진행, `WORK_SUMMARY + TASK_DONE`.
 하나라도 ❌ → 편집 멈추고 `SUGGEST_REVISION` 반환 (Tech Lead 으로 돌아감).
 
+# Repro 모드 (brief 의 `kind` 가 `"repro"` 일 때 — Bug Reproduction 흐름)
+
+**본 코드 절대 수정 금지.** 재현 시도·가설 검증만.
+
+작업 순서:
+1. brief 의 시나리오·조건·입력·환경 파악
+2. 프로젝트 테스트 인프라 있음 → 거기 reproducer 추가
+3. 없음 → `/tmp/forge-repro-<ts>/` 에 격리 reproducer 작성
+4. 실행, 결과 관찰
+5. `REPRO_REPORT` 반환 (`WORK_SUMMARY`/`TASK_DONE` 대신)
+
+    REPRO_REPORT:
+      scenario:     "시도한 시나리오 (입력·환경·조건)"
+      attempted:    "구체 시도 (명령·테스트 코드·시뮬레이션)"
+      result:       "재현됨 / 안 됨 / 부분 재현"
+      observations: "관찰 (로그·에러·동작 차이·timing)"
+      hypothesis:   "이 결과 기반의 가설"
+
+본 코드 (프로젝트 source) 수정 절대 금지. 테스트·reproducer 추가만 OK.
+
 # 출력 (3가지 중 정확히 하나)
 
 ## 1. 정상 완료

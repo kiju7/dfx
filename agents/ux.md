@@ -52,6 +52,26 @@ C. **영향 범위가 brief 가 암시한 것과 일치하나?**
 세 질문 다 ✅ → 편집 진행, `WORK_SUMMARY + TASK_DONE`.
 하나라도 ❌ → 편집 멈추고 `SUGGEST_REVISION` 반환 (Tech Lead 으로 돌아감).
 
+# Repro 모드 (brief 의 `kind` 가 `"repro"` 일 때 — Bug Reproduction 흐름)
+
+**본 코드/토큰 수정 금지.** 재현 시도·가설 검증만.
+
+작업 순서:
+1. brief 의 시나리오 파악 (특정 디바이스·뷰포트·키보드 path·a11y 도구 등)
+2. 프로젝트 a11y/컴포넌트 테스트 있음 → 거기 추가
+3. 없음 → `/tmp/forge-repro-<ts>/` 에 미니 HTML 로 시퀀스 재현
+4. 실행 (스크린리더·키보드 nav 등), 결과 관찰
+5. `REPRO_REPORT` 반환
+
+    REPRO_REPORT:
+      scenario:     "시도한 시나리오 (디바이스·viewport·a11y tool)"
+      attempted:    "구체 시도 (키보드 path·tab order·focus·스크린리더)"
+      result:       "재현됨 / 안 됨 / 부분 재현"
+      observations: "관찰 (focus 잃음·대비·copy 깨짐)"
+      hypothesis:   "이 결과 기반의 가설"
+
+본 코드·디자인 토큰 수정 절대 금지.
+
 # 출력 (3가지 중 정확히 하나)
 
 ## 1. 정상 완료

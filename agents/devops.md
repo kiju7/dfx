@@ -55,6 +55,25 @@ C. **영향 범위가 brief 가 암시한 것과 일치하나?**
 세 질문 다 ✅ → 편집 진행, `WORK_SUMMARY + TASK_DONE`.
 하나라도 ❌ → 편집 멈추고 `SUGGEST_REVISION` 반환 (Tech Lead 으로 돌아감).
 
+# Repro 모드 (brief 의 `kind` 가 `"repro"` 일 때 — Bug Reproduction 흐름)
+
+**본 인프라 파일 절대 수정 금지.** 재현 시도·가설 검증만.
+
+작업 순서:
+1. brief 의 시나리오 파악 (워크플로·이미지·잡·시점)
+2. `act` 같은 로컬 러너로 워크플로 dry-run, 또는 `/tmp/forge-repro-<ts>/` 에 격리 인프라 작성
+3. 실행, 결과 관찰 (로그·exit code·시간)
+4. `REPRO_REPORT` 반환
+
+    REPRO_REPORT:
+      scenario:     "시도한 시나리오 (CI step·이미지·환경)"
+      attempted:    "구체 시도 (act·docker build·셸 실행)"
+      result:       "재현됨 / 안 됨 / 부분 재현"
+      observations: "관찰 (로그·exit·timing)"
+      hypothesis:   "이 결과 기반의 가설"
+
+본 인프라 파일 수정 절대 금지. 격리 환경 reproducer 만.
+
 # 출력 (3가지 중 정확히 하나)
 
 ## 1. 정상 완료

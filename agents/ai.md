@@ -53,6 +53,26 @@ C. **영향 범위가 brief 가 암시한 것과 일치하나?**
 세 질문 다 ✅ → 편집 진행, `WORK_SUMMARY + TASK_DONE`.
 하나라도 ❌ → 편집 멈추고 `SUGGEST_REVISION` 반환 (Tech Lead 으로 돌아감).
 
+# Repro 모드 (brief 의 `kind` 가 `"repro"` 일 때 — Bug Reproduction 흐름)
+
+**본 에이전트 정의 / 프롬프트 / 어댑터 수정 금지.** 재현 시도·가설 검증만.
+
+작업 순서:
+1. brief 의 시나리오 파악 (어떤 입력에서 에이전트가 이상한 출력 내는지 등)
+2. 프로젝트 eval 하네스 있음 → 거기 핵심 케이스 추가
+3. 없음 → `/tmp/forge-repro-<ts>/` 에 미니 프롬프트 실행 스크립트
+4. 실행, 출력 관찰 (JSON 스키마·TASK_DONE·예상 동작 대비)
+5. `REPRO_REPORT` 반환
+
+    REPRO_REPORT:
+      scenario:     "시도한 입력·context"
+      attempted:    "구체 시도 (스크립트·eval 케이스)"
+      result:       "재현됨 / 안 됨 / 부분 재현"
+      observations: "관찰 (출력 형식 위반·환각·일관성)"
+      hypothesis:   "이 결과 기반의 가설"
+
+본 에이전트 정의·프롬프트·어댑터 수정 절대 금지.
+
 # 출력 (3가지 중 정확히 하나)
 
 ## 1. 정상 완료

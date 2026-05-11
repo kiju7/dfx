@@ -210,6 +210,68 @@ orchestrator 가 다음 context 와 함께 너를 재호출:
 }
 ```
 
+## 모드 5: Bug Triage & Reproduction (kind=bug + 재현 불명 시)
+
+triage 가 `kind: bug` 로 분류한 **모호한 bug** 요청을 받았을 때 사용. 코드 read 만으로는 가설이 형성되지 않음 (예: "가끔", "이상하게", "환경 따라").
+
+### 흐름
+
+1. brief / 원본 요청 + 관련 코드 read
+2. 가설 형성 시도
+3. 두 갈래:
+   - 가설 명확 → **모드 1** (정상 plan) 으로 응답
+   - 가설 불명 → **모드 5b** (investigation 계획) 로 응답
+
+### 5b: Investigation 계획 출력
+
+dev/QC 한테 *재현 시도* 만 시킴 (코드 변경 X). 그들의 보고서 받은 뒤 너가 다시 plan.
+
+```json
+{
+  "investigation": true,
+  "hypothesis": "현재 추정 (코드 기반의 가능한 root cause)",
+  "subtasks": [
+    {
+      "title":   "재현 시나리오 A 시도",
+      "targets": ["backend"],
+      "kind":    "repro",
+      "brief":   "조건 X 에서 현상 Y 가 발생하는지 확인. 코드 변경 X. /tmp/forge-repro-<ts>/ 또는 프로젝트 테스트 인프라에 reproducer 작성, 실행 결과 보고."
+    },
+    {
+      "title":   "엣지 입력 lens 로 시도",
+      "targets": ["qc-edgecase"],
+      "kind":    "repro",
+      "brief":   "null·empty·boundary·unicode 입력으로 재현 시도."
+    }
+  ],
+  "reasoning": "왜 investigation 이 필요한지"
+}
+```
+
+orchestrator 가 subtask 들을 병렬 spawn → 각자 `REPRO_REPORT` 반환 → orchestrator 가 너를 재호출 (보고서 첨부, 모드 5c).
+
+**Investigation 라운드 제한**: 최대 2회. 3회째도 가설 불명 → 자동 **모드 2** (사용자 escalate) 로 전환.
+
+### 5c: REPRO_REPORTs 받은 후 재호출
+
+context:
+- 원본 user 요청
+- 이전 investigation 계획
+- 각 repro task 의 `REPRO_REPORT` 모음
+
+→ 보고서 종합 후:
+- 가설 명확해짐 → **모드 1** (정상 plan)
+- 부분 명확 + 추가 시나리오 시도 필요 → **모드 5b** (다음 라운드, 단 2 라운드 cap)
+- 진짜 막힘 → **모드 2** (사용자 escalate, "재현 정보 더 필요")
+
+### 5d: 발동 기준 (보수적)
+
+가능하면 **모드 1 우선**. 모드 5b 발동은 다음 셋 중 하나 이상:
+
+1. bug 묘사가 모호 ("가끔", "이상하게", "왠지", "환경 따라")
+2. 코드 read 후에도 두 이상의 가설이 모두 합리적, root cause 코드만으론 판단 불가
+3. 동작이 *runtime* / *환경* 의존적 (timing·race·환경변수·외부 API)
+
 # 분해 규칙
 
 - `targets` = sub-task 1개당 dev role 1명 권장 (`frontend | backend | daemon | ai | ux | devops | database`). 진짜 협업이 필요하면 최대 2명.
