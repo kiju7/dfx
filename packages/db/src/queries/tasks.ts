@@ -107,14 +107,27 @@ export function byRequest(requestId: string): TaskRow[] {
 }
 
 export function recentRelated(needle: string, limit = 10): TaskRow[] {
-  const like = `%${needle.slice(0, 64).replace(/[%_]/g, '')}%`;
+  // Sanitise the needle for FTS5: strip special chars, collapse whitespace,
+  // append '*' so each token becomes a prefix query.
+  const term = needle
+    .slice(0, 64)
+    .replace(/["*^]/g, ' ')   // strip FTS5 operator chars
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((t) => `"${t}"*`)    // prefix-match each token
+    .join(' ');
+
+  if (!term) return [];
+
   return getReader()
     .prepare(
-      `SELECT * FROM tasks
-       WHERE title LIKE ? OR description_md LIKE ?
-       ORDER BY created_at DESC LIMIT ?`
+      `SELECT t.* FROM tasks t
+       JOIN tasks_fts ON tasks_fts.rowid = t.rowid
+       WHERE tasks_fts MATCH ?
+       ORDER BY t.created_at DESC LIMIT ?`
     )
-    .all(like, like, limit) as unknown as TaskRow[];
+    .all(term, limit) as unknown as TaskRow[];
 }
 
 export function listByStatus(status: TaskStatus): TaskRow[] {
