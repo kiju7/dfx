@@ -149,3 +149,35 @@ export function severityCountsForOpen(): SeverityCount[] {
     )
     .all() as unknown as SeverityCount[];
 }
+
+export interface TaskOpenCounts {
+  task_id: string;
+  total: number;
+  /** major / critical / blocker only — the "needs attention" tier */
+  high: number;
+}
+
+/**
+ * 모든 task 의 미해결 finding 카운트.
+ * Task Board 카드에 한눈에 issue 갯수를 띄우기 위함.
+ * resolved_at IS NULL 만 집계.
+ */
+export function openCountsByTask(): Map<string, TaskOpenCounts> {
+  const rows = getReader()
+    .prepare(
+      `SELECT
+         task_id,
+         COUNT(*) AS total,
+         SUM(CASE WHEN severity IN ('major','critical','blocker') THEN 1 ELSE 0 END) AS high
+       FROM qc_findings
+       WHERE resolved_at IS NULL
+       GROUP BY task_id`
+    )
+    .all() as unknown as Array<{ task_id: string; total: number; high: number }>;
+
+  const map = new Map<string, TaskOpenCounts>();
+  for (const r of rows) {
+    map.set(r.task_id, { task_id: r.task_id, total: r.total, high: r.high });
+  }
+  return map;
+}
