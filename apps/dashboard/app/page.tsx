@@ -79,7 +79,7 @@ export default function Page() {
                 const meta = t.agent_id ? getAgentMeta(t.agent_id) : null;
                 const issues = openCounts.get(t.id);
                 return (
-                  <Link href={`/tasks/${t.id}`} key={t.id} style={{ color: 'inherit', textDecoration: 'none' }}>
+                  <Link href={`/tasks/${t.id}`} key={t.id} className="card-link">
                     <div className="card">
                       <div className="title">{t.title}</div>
                       <div className="meta">
