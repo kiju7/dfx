@@ -7,7 +7,6 @@ import { runTriage } from '../triage.js';
 import { handleRequest } from '../dispatcher.js';
 
 const PORT = Number(process.env.ORCHESTRATOR_PORT ?? 4317);
-const startedAt = Date.now();
 
 export const inFlightTasks = new Set<string>();
 
@@ -64,7 +63,7 @@ export function startIpcServer(): void {
     }
 
     if (req.method === 'GET' && req.url === '/version') {
-      send(res, 200, { version: '0.1.0', startedAt });
+      send(res, 200, { version: '0.1.0' });
       return;
     }
 
