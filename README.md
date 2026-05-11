@@ -12,6 +12,8 @@
 
 **모든 단계가 같은 Claude Code 세션 안에서** `Task` 툴 호출로 실행됩니다. 같은 layer 의 작업은 한 메시지에 여러 Task 호출을 동시에 띄워 **진짜 병렬**로 돌아갑니다. Tech Lead 가 의도 모호함을 감지하면 dev 작업 전에 직접 사용자에게 informed question 을 띄우고, dev 가 Discovery 중 brief 와 코드 충돌을 발견하면 `SUGGEST_REVISION` 으로 Tech Lead 한테 돌아가 재설계됩니다.
 
+QC 수렴 후 **Tech Lead 의 Acceptance Review** 가 한 번 더 돕니다 (v0.10+) — 원본 요청 대비 의도 충족 / 전체 일관성 / PR review-level 품질 검증. REJECT 면 fix 사이클이 한 번 더 돌고 (Ralph 수렴 패턴), `APPROVE` 가 나올 때까지 반복.
+
 ---
 
 ## 무엇을 할 수 있나 (예시)
@@ -125,7 +127,9 @@ _workspace/20260511-153022-a3f4/
   04-qc/iter-0.json      # QC findings (초기)
   04-qc/iter-1.json      # QC findings (Ralph iter 1 후)
   05-ralph/iter-1.md     # Ralph 사이클 1 의 dispatch + 결과
-  99-summary.md          # 최종 consolidated
+  06-review/round-1.json # Tech Lead Acceptance Review verdict + directives
+  97-user-report.md      # 비전문가용 markdown 보고서 (Tech Lead 작성)
+  99-summary.md          # 최종 consolidated (기술 요약)
 ```
 
 용도:

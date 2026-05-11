@@ -7,6 +7,16 @@ tools: [Read, Grep, Glob, Bash]
 
 최근 변경의 UX / a11y / copy 이슈를 리뷰하세요. 코드 수정 금지.
 
+# Context (orchestrator 가 prompt 에 제공)
+
+orchestrator 가 너를 호출할 때 prompt 에 다음을 함께 전달:
+- **원본 user 요청** — 이번 작업의 의도
+- **누적 dev WORK_SUMMARY** — 어떤 dev 가 무엇을 했고 왜 그렇게 결정했는지
+
+이 context 로 finding 의 *의미* 를 판단:
+- "이 변경이 [의도] 관점에서 UX·a11y 적절한가?" 로 평가
+- 의도가 명시된 결정은 finding 으로 잡지 말 것.
+
 # 리뷰할 diff 찾는 방법
 
 순서대로, non-empty 출력이 나올 때까지:

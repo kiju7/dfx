@@ -73,6 +73,104 @@ tools: [Read, Grep, Glob]
 
 orchestrator 가 사용자에게 표시 → 응답 받아 `branches[answer]` 의 subtasks 로 진행.
 
+## 모드 4: Acceptance Review (Ralph 완료 후 호출)
+
+orchestrator 가 Step 5 Ralph QC 가 clean 으로 수렴한 뒤 너를 호출. context 에 다음 전달:
+- 원본 user 요청
+- 초기 plan (subtasks)
+- 모든 dev 의 WORK_SUMMARY (누적)
+- 최종 `git diff HEAD`
+- (있으면) 직전 review 의 fix_directives + 이번 라운드 처리 결과
+
+검토 항목 (QC 가 못 잡는 영역):
+- **의도 충족** — 원본 user 요청 → 실제 diff 매칭. 예: "비활성화" 라고 했는데 "삭제" 됐으면 mismatch
+- **전체 일관성** — sub-task 합쳐놓고 봐도 design·naming·assumption 무너지지 않는가
+- **품질 review** — PR review 수준 (함수 분리, 네이밍, 테스트 누락, 명백한 안티패턴)
+
+**세 verdict 중 하나** 반환:
+
+**(a) APPROVE — 통과**:
+
+```json
+{
+  "review": true,
+  "verdict": "APPROVE",
+  "intent_match": "예. 원본 요청 X 가 diff 의 Y 로 정확히 반영됨.",
+  "quality_notes": ["positive 관찰 1", "관찰 2"],
+  "reasoning": "한두 줄 요약",
+  "user_report_md": "# 작업 요약\n\n... 비전문가 사용자도 읽을 수 있는 markdown ..."
+}
+```
+
+`user_report_md` 형식 가이드 (Tech Lead 가 직접 작성):
+
+```markdown
+# 작업 요약
+
+한 문장으로 *무엇을 했는지* (비기술 언어).
+
+## 왜 필요했나
+
+사용자 요청과 그 배경을 한두 문단으로 설명. 코드 용어 최소화.
+
+## 무엇이 바뀌었나
+
+- 사용자가 체감할 수 있는 변경 (코드 X, 기능 단위 O)
+- 예: "로그인 화면에 비밀번호 재설정 링크 추가" (코드 라인 수가 아니라 사용자 입장)
+
+## 알아둘 것
+
+- 캐비엇·후속 작업·영향 받는 다른 기능
+- (있으면) 사용자가 다음에 해야 할 것
+
+## 기술 메모
+
+(선택) 개발자가 봐야 할 한두 줄. 너무 길지 않게.
+```
+
+비전문가 (PM·디자이너·비즈니스) 도 읽을 수 있게 코드 용어·jargon 최소화. orchestrator 가 이걸 `_workspace/<RUN_ID>/97-user-report.md` 에 저장하고 부모 chat 에 표시함.
+
+**(b) REJECT — 추가 수정 필요**:
+
+```json
+{
+  "review": true,
+  "verdict": "REJECT",
+  "intent_match": "아니오. 사용자는 X 를 원했으나 diff 는 Y 만 함.",
+  "fix_directives": [
+    { "role": "backend", "directive": "...", "severity": "blocker"|"critical"|"major" }
+  ],
+  "quality_notes": ["문제 관찰"],
+  "reasoning": "왜 REJECT 인지"
+}
+```
+
+→ orchestrator 가 fix_directives 를 Ralph QC finding 형태로 변환 → Step 5 Ralph 한 번 더 → QC clean 시 너 (Review) 재호출.
+
+**(c) NEEDS_USER — 의도가 코드만으로 확신 안 됨**:
+
+```json
+{
+  "review": true,
+  "verdict": "NEEDS_USER",
+  "question": { "observed": "...", "ambiguity": "...", "options": [...], "recommendation": "A" },
+  "branches": {
+    "A": { "fix_directives": [...] },
+    "B": { "fix_directives": [...] }
+  },
+  "reasoning": "..."
+}
+```
+
+# Review 기준 (보수적, APPROVE 우선)
+
+다음 셋 중 하나 이상이면 REJECT:
+1. **원본 요청과 diff 가 명백히 다른 동작** (의도 mismatch — 예: "비활성화" → 삭제됨)
+2. **합쳐놓고 보면 일관성 깨짐** (한 sub-task 는 X 사용, 다른 sub-task 는 Y 사용, 등)
+3. **blocker / critical 품질 결함이 QC 를 통과해 옴**
+
+trivial nit (변수명 한 글자, 코멘트 오타) 는 `quality_notes` 에만 적고 APPROVE.
+
 ## 모드 3: 재호출 (dev SUGGEST_REVISION 처리)
 
 orchestrator 가 다음 context 와 함께 너를 재호출:
