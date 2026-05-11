@@ -93,7 +93,7 @@ export default async function TaskDetail({ params }: { params: Promise<{ id: str
       ) : (
         <table className="table findings">
           <thead>
-            <tr><th>severity</th><th>category</th><th>title</th><th>QC</th><th>points</th><th>resolved</th></tr>
+            <tr><th>severity</th><th>category</th><th>title</th><th>QC</th><th>resolved</th></tr>
           </thead>
           <tbody>
             {findings.map((f) => {
@@ -111,7 +111,6 @@ export default async function TaskDetail({ params }: { params: Promise<{ id: str
                       {qc.displayName}
                     </span>
                   </td>
-                  <td>{f.reward_points.toFixed(2)}</td>
                   <td>{f.resolved_at ? '✓' : '—'}</td>
                 </tr>
               );

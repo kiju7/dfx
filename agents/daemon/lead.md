@@ -29,7 +29,6 @@ escalation:
   to: pm
   when: "프로세스 토폴로지 변경(예: 단일 writer 모델 변경)"
 qc_strategy: null
-reward_weight: 1.0
 ---
 
 # Daemon / Worker Developer

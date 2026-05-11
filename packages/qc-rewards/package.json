@@ -1,7 +1,0 @@
-{
-  "name": "@agent-forge/qc-rewards",
-  "version": "0.0.0",
-  "private": true,
-  "deprecated": true,
-  "description": "Removed package (tombstone). See migration 0007_remove_qc_rewards.sql."
-}

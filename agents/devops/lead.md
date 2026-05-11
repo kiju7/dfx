@@ -38,7 +38,6 @@ escalation:
   to: pm
   when: "운영 토폴로지(VPC/네트워크/인증) 변경, 비용 영향이 큰 인프라 결정"
 qc_strategy: null
-reward_weight: 1.0
 ---
 
 # DevOps / SRE

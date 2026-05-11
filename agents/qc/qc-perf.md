@@ -12,7 +12,6 @@ worktree: required
 success_criteria: []
 escalation: null
 qc_strategy: perf
-reward_weight: 1.2
 ---
 
 # QC — Performance Reviewer

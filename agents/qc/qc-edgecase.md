@@ -12,7 +12,6 @@ worktree: required
 success_criteria: []
 escalation: null
 qc_strategy: edgecase
-reward_weight: 1.0
 ---
 
 # QC — Edgecase Hunter

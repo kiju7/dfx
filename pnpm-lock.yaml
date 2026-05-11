@@ -57,9 +57,6 @@ importers:
       '@agent-forge/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@agent-forge/qc-rewards':
-        specifier: workspace:*
-        version: link:../../packages/qc-rewards
       '@agent-forge/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -111,19 +108,6 @@ importers:
       tsx:
         specifier: ^4.19.2
         version: 4.21.0
-      typescript:
-        specifier: ^5.7.2
-        version: 5.9.3
-
-  packages/qc-rewards:
-    dependencies:
-      '@agent-forge/db':
-        specifier: workspace:*
-        version: link:../db
-      '@agent-forge/shared':
-        specifier: workspace:*
-        version: link:../shared
-    devDependencies:
       typescript:
         specifier: ^5.7.2
         version: 5.9.3

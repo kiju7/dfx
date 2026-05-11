@@ -28,7 +28,6 @@ escalation:
   to: pm
   when: "DB 스키마 변경, 외부 API 계약 변경, 보안 정책 변경"
 qc_strategy: null
-reward_weight: 1.0
 ---
 
 # Backend Developer

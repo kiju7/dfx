@@ -12,7 +12,6 @@ worktree: required
 success_criteria: []
 escalation: null
 qc_strategy: ux
-reward_weight: 1.0
 ---
 
 # QC — UX & A11y Reviewer

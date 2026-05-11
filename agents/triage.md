@@ -12,7 +12,6 @@ worktree: forbidden
 success_criteria: []
 escalation: null
 qc_strategy: null
-reward_weight: 1.0
 ---
 
 # Triage

@@ -74,7 +74,7 @@ export function writeHandover(input: WriteInput): { id: string; path: string } {
       : findings
           .map(
             (f) =>
-              `- **${f.severity}/${f.category}** ${f.title} (${f.qc_agent_id}, ${f.reward_points.toFixed(2)} pts${f.resolved_at ? ', resolved' : ''})`
+              `- **${f.severity}/${f.category}** ${f.title} (${f.qc_agent_id}${f.resolved_at ? ', resolved' : ''})`
           )
           .join('\n'),
     '',

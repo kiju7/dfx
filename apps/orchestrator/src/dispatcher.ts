@@ -1,6 +1,5 @@
 import { runAgent, extractJsonObject } from '@agent-forge/agents';
 import { queries } from '@agent-forge/db';
-import { tally } from '@agent-forge/qc-rewards';
 import {
   QcReportSchema,
   CATEGORY_TO_ROLE,
@@ -164,24 +163,24 @@ async function runQc(args: {
     report = { qc_agent_id: args.qc.id, findings: [] };
   }
 
-  const recorded = tally({
-    task_id: args.target.task_id,
-    qc_agent_id: args.qc.id,
-    reward_weight: args.qc.reward_weight,
-    findings: report.findings,
-  });
-
-  for (const r of recorded) {
+  // Reward scoring was retired — just record each finding once and emit the
+  // corresponding qc.finding event for live dashboards.
+  for (const f of report.findings) {
+    const findingId = queries.findings.insert({
+      task_id: args.target.task_id,
+      qc_agent_id: args.qc.id,
+      severity: f.severity,
+      category: f.category,
+      title: f.title,
+      detail_md: f.detail_md,
+    });
     publish('qc.finding', {
       taskId: args.target.task_id,
-      findingId: r.finding_id,
+      findingId,
       qcAgentId: args.qc.id,
-      severity: r.severity,
-      category: r.category,
-      title:
-        report.findings.find((f) => f.category === r.category && f.severity === r.severity)?.title ??
-        '(no title)',
-      rewardPoints: r.reward_points,
+      severity: f.severity,
+      category: f.category,
+      title: f.title,
     });
   }
 }
@@ -200,17 +199,21 @@ async function processDevRun(input: { requestId: string; title: string; run: Dev
   const allActionable = queries.findings
     .byTask(run.task_id)
     .filter((f) => f.resolved_at === null && SEVERITY_RANK[f.severity] >= SEVERITY_RANK.minor);
-  // Cap to the highest-value findings so a noisy QC pool doesn't burn the wall-clock budget.
+  // Cap to the highest-severity findings so a noisy QC pool doesn't burn the
+  // wall-clock budget. Severity rank breaks ties by created_at (earlier first).
   const findings = allActionable
     .slice()
-    .sort((a, b) => b.reward_points - a.reward_points)
+    .sort((a, b) => {
+      const r = SEVERITY_RANK[b.severity] - SEVERITY_RANK[a.severity];
+      return r !== 0 ? r : a.created_at - b.created_at;
+    })
     .slice(0, RALPH_FINDING_CAP);
   if (allActionable.length > findings.length) {
     queries.messages.append({
       task_id: run.task_id,
       sender_kind: 'system',
       sender_id: 'orchestrator',
-      body_md: `Ralph cap: ${allActionable.length} actionable findings — processing top ${findings.length} by reward_points. Remaining ${allActionable.length - findings.length} stay open and will surface in future runs.`,
+      body_md: `Ralph cap: ${allActionable.length} actionable findings — processing top ${findings.length} by severity. Remaining ${allActionable.length - findings.length} stay open and will surface in future runs.`,
     });
   }
 

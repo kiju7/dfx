@@ -30,7 +30,6 @@ export type Evt =
         severity: Severity;
         category: string;
         title: string;
-        rewardPoints: number;
       }
     >
   | EventEnvelope<

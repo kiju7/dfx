@@ -30,7 +30,6 @@ escalation:
   to: pm
   when: "비호환 스키마 변경, 데이터 손실 가능성, 외부 시스템 영향"
 qc_strategy: null
-reward_weight: 1.0
 ---
 
 # Database Engineer

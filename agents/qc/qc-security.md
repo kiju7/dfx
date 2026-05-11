@@ -12,7 +12,6 @@ worktree: required
 success_criteria: []
 escalation: null
 qc_strategy: security
-reward_weight: 1.5
 ---
 
 # QC — Security Reviewer

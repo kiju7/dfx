@@ -28,7 +28,6 @@ escalation:
   to: pm
   when: "요구사항이 모호하거나 API 계약/스펙 변경이 필요한 경우"
 qc_strategy: null
-reward_weight: 1.0
 ---
 
 # Frontend Lead

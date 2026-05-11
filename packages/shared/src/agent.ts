@@ -21,7 +21,9 @@ export const AgentSpecSchema = z.object({
     .nullable()
     .default(null),
   qc_strategy: z.enum(QC_STRATEGIES).nullable().default(null),
-  reward_weight: z.number().positive().default(1.0),
+  // reward_weight removed — QC reward system retired. The field stays accepted
+  // (and ignored) on existing agent MDs via zod's permissive default for
+  // unknown keys; nothing in the orchestrator reads it anymore.
 });
 
 export type AgentSpec = z.infer<typeof AgentSpecSchema> & {

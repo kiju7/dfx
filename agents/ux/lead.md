@@ -23,7 +23,6 @@ escalation:
   to: pm
   when: "정보 구조 변경/스펙 변경이 필요한 경우"
 qc_strategy: null
-reward_weight: 1.0
 ---
 
 # UX Designer

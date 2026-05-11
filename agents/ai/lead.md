@@ -27,7 +27,6 @@ escalation:
   to: pm
   when: "에이전트 권한 모델·도구 화이트리스트 정책 변경"
 qc_strategy: null
-reward_weight: 1.0
 ---
 
 # Agent / AI Developer
