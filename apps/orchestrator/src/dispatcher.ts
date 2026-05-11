@@ -53,9 +53,12 @@ const SEVERITY_RANK: Record<Severity, number> = {
   blocker: 4,
 };
 
-// Cap how many findings per task trigger a Ralph round to keep cost+latency bounded.
-// Top-N by reward_points; the rest are recorded but left for the next run.
-const RALPH_FINDING_CAP = Number(process.env.RALPH_FINDING_CAP ?? 3);
+// 실무 워크플로에 맞게 모든 actionable finding 을 처리하는 것을 디폴트로
+// 가져간다. 이전 캡(=3) 은 "일부만 고치고 나머지는 묻는" 형태가 돼서
+// 사용자가 backlog 가 묻혀버리는 문제를 겪음. 안전망으로 cap 자체는 유지하되
+// 디폴트를 50 으로 올려 사실상 모든 케이스를 처리하게 함. 비용이 우려되면
+// 운영자가 env 로 다시 좁힐 수 있음.
+const RALPH_FINDING_CAP = Number(process.env.RALPH_FINDING_CAP ?? 50);
 
 async function spawnDev(input: {
   requestId: string;
@@ -291,15 +294,48 @@ async function processDevRun(input: { requestId: string; title: string; run: Dev
   queries.tasks.setStatus(run.task_id, 'in_progress');
   publish('task.status_changed', { taskId: run.task_id, from: 'qc', to: 'in_progress' });
 
+  // 병렬 처리 전략:
+  //  - Finding 들을 매핑된 follow-up role 별로 그룹핑한다.
+  //  - 같은 role 안에서는 순차 처리 — 그 role 이 isolated worktree 를
+  //    공유하기 때문에 동시에 만지면 머지 충돌이 발생함.
+  //  - 다른 role 끼리는 병렬 — 각자 독립 worktree 라 안전.
+  //
+  // 예: frontend 4건 + backend 3건 + database 1건 → 3개 워크트리가 동시에
+  // 돌아가고, 각 워크트리 안에서는 한 건씩 차례로 fix.
+  const byRole = new Map<string, typeof findings>();
   for (const f of findings) {
-    await enterRalphLoop({
-      requestId: input.requestId,
-      task: run,
-      finding: { id: f.id, category: f.category, severity: f.severity, title: f.title, detail: f.detail_md },
-      followupRole: pickFollowupRole(f.category),
-      complexity: run.complexity,
+    const role = pickFollowupRole(f.category);
+    const bucket = byRole.get(role) ?? [];
+    bucket.push(f);
+    byRole.set(role, bucket);
+  }
+
+  if (byRole.size > 1) {
+    queries.messages.append({
+      task_id: run.task_id,
+      sender_kind: 'system',
+      sender_id: 'orchestrator',
+      body_md: `Parallel Ralph: dispatching ${findings.length} finding(s) across ${byRole.size} role(s) — ${
+        Array.from(byRole.entries())
+          .map(([r, fs]) => `${r}:${fs.length}`)
+          .join(', ')
+      } in parallel.`,
     });
   }
+
+  await Promise.all(
+    Array.from(byRole.entries()).map(async ([_role, bucket]) => {
+      for (const f of bucket) {
+        await enterRalphLoop({
+          requestId: input.requestId,
+          task: run,
+          finding: { id: f.id, category: f.category, severity: f.severity, title: f.title, detail: f.detail_md },
+          followupRole: pickFollowupRole(f.category),
+          complexity: run.complexity,
+        });
+      }
+    })
+  );
 
   // Terminal transition after all Ralph rounds. Ralph itself no longer flips
   // the task status so multi-finding loops stay quiet.

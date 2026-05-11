@@ -87,3 +87,65 @@ export function dailyForLastDays(days: number): DailyCount[] {
     )
     .all(sinceMs) as unknown as DailyCount[];
 }
+
+export interface IssueRow extends FindingRow {
+  task_title: string;
+  task_status: string;
+  task_agent_id: string | null;
+  request_id: string;
+  ralph_run_id: string | null;
+  ralph_exit_reason: string | null;
+}
+
+/**
+ * 모든 finding 을 task / ralph_run 컨텍스트와 함께 반환. /issues 페이지의 단일 쿼리.
+ * - `onlyOpen=true` → resolved_at IS NULL 만
+ * - 정렬: severity rank (blocker>critical>major>minor>nit) → created_at DESC
+ */
+export function listIssues(opts: { onlyOpen?: boolean; limit?: number } = {}): IssueRow[] {
+  const limit = opts.limit ?? 500;
+  const filter = opts.onlyOpen ? 'WHERE f.resolved_at IS NULL' : '';
+  return getReader()
+    .prepare(
+      `SELECT
+         f.*,
+         t.title  AS task_title,
+         t.status AS task_status,
+         t.agent_id AS task_agent_id,
+         t.request_id AS request_id,
+         r.id AS ralph_run_id,
+         r.exit_reason AS ralph_exit_reason
+       FROM qc_findings f
+       JOIN tasks t ON t.id = f.task_id
+       LEFT JOIN ralph_runs r ON r.finding_id = f.id
+       ${filter}
+       ORDER BY
+         CASE f.severity
+           WHEN 'blocker'  THEN 0
+           WHEN 'critical' THEN 1
+           WHEN 'major'    THEN 2
+           WHEN 'minor'    THEN 3
+           WHEN 'nit'      THEN 4
+           ELSE 5
+         END,
+         f.created_at DESC
+       LIMIT ?`
+    )
+    .all(limit) as unknown as IssueRow[];
+}
+
+export interface SeverityCount {
+  severity: string;
+  count: number;
+}
+
+export function severityCountsForOpen(): SeverityCount[] {
+  return getReader()
+    .prepare(
+      `SELECT severity, COUNT(*) AS count
+       FROM qc_findings
+       WHERE resolved_at IS NULL
+       GROUP BY severity`
+    )
+    .all() as unknown as SeverityCount[];
+}
