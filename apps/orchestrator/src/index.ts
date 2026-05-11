@@ -18,6 +18,13 @@ function main(): void {
   checkpoint();
   const specs = loadRegistry();
   console.log(`[orchestrator] loaded ${specs.length} agents: ${specs.map((s) => s.id).join(', ')}`);
+  const modelOverride = process.env.AGENT_FORGE_MODEL;
+  const triageOverride = process.env.AGENT_FORGE_TRIAGE_MODEL;
+  if (modelOverride || triageOverride) {
+    console.log(
+      `[orchestrator] model overrides: dev/QC=${modelOverride ?? '(spec default)'} triage=${triageOverride ?? '(spec default)'}`
+    );
+  }
   console.log(`[orchestrator] events.ndjson => ${eventsPath()}`);
   installShutdownHandlers({ inFlight: inFlightTasks });
   startIpcServer();

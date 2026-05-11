@@ -58,8 +58,16 @@ export async function runAgent(opts: RunOptions): Promise<RunResult> {
 
   const tools = allowedToolNames(opts.spec);
 
+  // Env overrides let one run-time switch upgrade all dev/QC agents to a
+  // bigger model without touching the agent MD files. Triage stays on its
+  // own (cheap) model unless a triage-specific override is set.
+  const effectiveModel =
+    opts.spec.role === 'triage'
+      ? process.env.AGENT_FORGE_TRIAGE_MODEL ?? opts.spec.model
+      : process.env.AGENT_FORGE_MODEL ?? opts.spec.model;
+
   const sdkOptions: Options = {
-    model: opts.spec.model,
+    model: effectiveModel,
     cwd: opts.cwd,
     tools,
     allowedTools: tools,
