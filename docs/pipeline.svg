@@ -124,8 +124,9 @@
   <text x="800" y="615" text-anchor="end" class="branch-lbl">findings 를 dev 한테 dispatch</text>
   <text x="800" y="630" text-anchor="end" class="branch-lbl">(fix → re-QC → Ralph 재평가)</text>
 
-  <!-- Arrow to final -->
+  <!-- Arrow to final (clean exit) -->
   <path d="M 450,718 L 450,748" class="arrow" marker-end="url(#arrow)"/>
+  <text x="460" y="740" class="branch-lbl">clean</text>
 
   <!-- 7. Final summary (oval) -->
   <ellipse cx="450" cy="772" rx="140" ry="22" class="final"/>
