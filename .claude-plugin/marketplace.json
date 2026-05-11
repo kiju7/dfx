@@ -12,7 +12,7 @@
       "description": "Multi-agent engineering pipeline that runs natively inside Claude Code (/forge → triage → PM → parallel devs → 4 QC reviewers → Ralph Loop auto-fix).",
       "source": {
         "type": "local",
-        "path": "."
+        "path": ".."
       }
     }
   ]
