@@ -20,9 +20,14 @@ function main(): void {
   console.log(`[orchestrator] loaded ${specs.length} agents: ${specs.map((s) => s.id).join(', ')}`);
   const modelOverride = process.env.AGENT_FORGE_MODEL;
   const triageOverride = process.env.AGENT_FORGE_TRIAGE_MODEL;
+  const autoTier = (process.env.AGENT_FORGE_AUTO_TIER ?? 'on').toLowerCase();
   if (modelOverride || triageOverride) {
     console.log(
-      `[orchestrator] model overrides: dev/QC=${modelOverride ?? '(spec default)'} triage=${triageOverride ?? '(spec default)'}`
+      `[orchestrator] model overrides: dev/QC=${modelOverride ?? '(spec default)'} triage=${triageOverride ?? '(spec default)'} — explicit override wins, auto-tier inactive`
+    );
+  } else {
+    console.log(
+      `[orchestrator] auto-tier=${autoTier} — triage's complexity verdict picks Opus(complex) / Sonnet(else). Override with AGENT_FORGE_MODEL.`
     );
   }
   console.log(`[orchestrator] events.ndjson => ${eventsPath()}`);

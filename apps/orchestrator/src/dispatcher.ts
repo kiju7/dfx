@@ -7,6 +7,7 @@ import {
   findWorkspaceRoot,
   type AgentSpec,
   type AgentRole,
+  type Complexity,
   type TriageOutput,
   type Severity,
   type PmSubtask,
@@ -32,6 +33,7 @@ interface TaskDescriptor {
   brief: string;
   targets: AgentRole[];
   depends_on: number[];
+  complexity: Complexity;
 }
 
 interface DevRun {
@@ -41,6 +43,7 @@ interface DevRun {
   sessionId: string | null;
   ok: boolean;
   text: string;
+  complexity: Complexity;
 }
 
 const SEVERITY_RANK: Record<Severity, number> = {
@@ -60,6 +63,7 @@ async function spawnDev(input: {
   spec: AgentSpec;
   brief: string;
   title: string;
+  complexity: Complexity;
 }): Promise<DevRun> {
   const task_id = queries.tasks.insert({
     request_id: input.requestId,
@@ -88,6 +92,7 @@ async function spawnDev(input: {
     spec: input.spec,
     cwd: wt?.path ?? REPO_ROOT,
     prompt: input.brief,
+    complexity: input.complexity,
   });
 
   queries.costs.record({
@@ -112,7 +117,7 @@ async function spawnDev(input: {
     body_md: run.text.slice(0, 8000),
   });
 
-  return { task_id, spec: input.spec, wt, sessionId: run.sessionId, ok, text: run.text };
+  return { task_id, spec: input.spec, wt, sessionId: run.sessionId, ok, text: run.text, complexity: input.complexity };
 }
 
 async function runQc(args: {
@@ -130,7 +135,7 @@ async function runQc(args: {
     'Inspect the changes (git diff main..HEAD inside the cwd) and respond per your output spec.',
   ].join('\n');
 
-  const result = await runAgent({ spec: args.qc, cwd: qcCwd, prompt });
+  const result = await runAgent({ spec: args.qc, cwd: qcCwd, prompt, complexity: args.target.complexity });
 
   queries.costs.record({
     task_id: args.target.task_id,
@@ -259,6 +264,7 @@ async function processDevRun(input: { requestId: string; title: string; run: Dev
       task: run,
       finding: { id: f.id, category: f.category, severity: f.severity, title: f.title, detail: f.detail_md },
       followupRole: pickFollowupRole(f.category),
+      complexity: run.complexity,
     });
   }
   // Single terminal transition after all Ralph rounds — Ralph itself no longer
@@ -303,6 +309,7 @@ async function executeTaskDescriptor(args: {
         spec,
         brief: args.desc.brief,
         title: args.desc.title,
+        complexity: args.desc.complexity,
       })
     )
   );
@@ -356,16 +363,22 @@ function toDescriptors(input: { triage: TriageOutput; title: string; body: strin
       brief: input.body || input.title,
       targets: input.triage.targets,
       depends_on: [],
+      complexity: input.triage.complexity,
     },
   ];
 }
 
-function pmSubtasksToDescriptors(subs: PmSubtask[], requestTitle: string): TaskDescriptor[] {
+function pmSubtasksToDescriptors(
+  subs: PmSubtask[],
+  requestTitle: string,
+  fallback: Complexity
+): TaskDescriptor[] {
   return subs.map((s) => ({
     title: `${requestTitle} :: ${s.title}`,
     brief: s.brief,
     targets: s.targets,
     depends_on: s.depends_on,
+    complexity: s.complexity ?? fallback,
   }));
 }
 
@@ -386,7 +399,7 @@ export async function handleRequest(input: DispatchInput): Promise<void> {
         body_md:
           '```json\n' + JSON.stringify(breakdown, null, 2) + '\n```',
       });
-      descriptors = pmSubtasksToDescriptors(breakdown.subtasks, input.title);
+      descriptors = pmSubtasksToDescriptors(breakdown.subtasks, input.title, input.triage.complexity);
     } catch (e) {
       queries.messages.append({
         task_id: null,

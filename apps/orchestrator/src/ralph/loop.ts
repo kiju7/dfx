@@ -2,7 +2,7 @@ import { resolve } from 'node:path';
 import { appendFileSync } from 'node:fs';
 import { runAgent } from '@agent-forge/agents';
 import { queries } from '@agent-forge/db';
-import { findWorkspaceRoot, type AgentRole, type Severity } from '@agent-forge/shared';
+import { findWorkspaceRoot, type AgentRole, type Complexity, type Severity } from '@agent-forge/shared';
 import * as registry from '../registry.js';
 import * as worktree from '../worktree/manager.js';
 import { publish } from '../events/publisher.js';
@@ -25,6 +25,7 @@ export interface RalphContext {
   };
   followupRole: string;
   maxIterations?: number;
+  complexity?: Complexity;
 }
 
 function shouldEscalate(args: { iterations: number; finding: RalphContext['finding'] }): boolean {
@@ -162,7 +163,13 @@ export async function enterRalphLoop(ctx: RalphContext): Promise<void> {
     ].join('\n');
 
     const cwd = wt?.path ?? REPO_ROOT;
-    const result = await runAgent({ spec: devSpec, cwd, prompt, resume: sessionId });
+    const result = await runAgent({
+      spec: devSpec,
+      cwd,
+      prompt,
+      resume: sessionId,
+      complexity: ctx.complexity ?? ctx.task.complexity,
+    });
     sessionId = result.sessionId ?? sessionId;
 
     queries.costs.record({

@@ -30,6 +30,7 @@ reward_weight: 1.0
   "targets": ["frontend"],
   "parallelism": 1,
   "confidence": 0.85,
+  "complexity": "simple" | "standard" | "complex",
   "reasoning": "한두 줄"
 }
 ```
@@ -42,6 +43,19 @@ reward_weight: 1.0
   - `devops` = CI/CD, Docker, GitHub Actions, terraform, 배포 스크립트
   - `database` = SQLite 스키마·마이그레이션·쿼리·인덱스 튜닝
 - `confidence`는 0.0~1.0. 0.9 초과는 본 코드 직접 편집을 허용하는 임계이므로 보수적으로.
+
+## complexity 판정 가이드
+
+오케스트레이터가 이 값을 보고 모델을 자동 선택한다 (simple/standard → Sonnet, complex → Opus). 보수적으로 매겨라 — 모르면 standard.
+
+- `simple` — 한두 파일 안의 자명한 수정. 텍스트·색·간격·literal 값 변경, 명백한 일대일 리네임, 누락된 import 추가, 작은 a11y 속성 보완. 모델 추론력이 거의 필요 없음.
+- `standard` — 일반적인 기능 추가/버그 수정. 새 컴포넌트, 새 API 라우트, 기존 패턴을 따르는 작업. 도메인 하나 안에서 끝남. **기본값**.
+- `complex` — 다음 중 하나 이상 해당:
+  - 다중 도메인이 협업하는 새 기능 (frontend + backend + database)
+  - DB 스키마 변경이 포함된 작업
+  - 아키텍처 결정(새 패키지·새 라이프사이클·새 IPC 채널)
+  - 보안·인증·결제처럼 한 번에 잘해야 하는 영역
+  - 명백한 기존 패턴이 없어서 설계 사고가 필요한 작업
 
 ## 가이드라인
 

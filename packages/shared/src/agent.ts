@@ -29,12 +29,16 @@ export type AgentSpec = z.infer<typeof AgentSpecSchema> & {
   body_md: string;
 };
 
+export const COMPLEXITY = ['simple', 'standard', 'complex'] as const;
+export type Complexity = (typeof COMPLEXITY)[number];
+
 export const TriageOutputSchema = z.object({
   kind: z.enum(['bug', 'feature', 'qc', 'fix']),
   route: z.enum(['pm', 'direct']),
   targets: z.array(z.enum(AGENT_ROLES)).min(1),
   parallelism: z.number().int().min(1).max(5).default(1),
   confidence: z.number().min(0).max(1).default(0.5),
+  complexity: z.enum(COMPLEXITY).default('standard'),
   reasoning: z.string().default(''),
 });
 export type TriageOutput = z.infer<typeof TriageOutputSchema>;
@@ -60,6 +64,7 @@ export const PmSubtaskSchema = z.object({
   targets: z.array(z.enum(AGENT_ROLES)).min(1).max(2),
   brief: z.string().min(1),
   depends_on: z.array(z.number().int().nonnegative()).default([]),
+  complexity: z.enum(COMPLEXITY).optional(),
 });
 export type PmSubtask = z.infer<typeof PmSubtaskSchema>;
 

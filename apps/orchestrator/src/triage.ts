@@ -75,7 +75,7 @@ export async function runTriage(input: TriageInput): Promise<TriageOutput> {
     request_id: input.requestId,
     kind: 'triage',
     scope: out.value.route === 'pm' ? 'pm' : out.value.targets.join(','),
-    title: `Triage: ${out.value.route} → [${out.value.targets.join(', ')}] (conf ${out.value.confidence.toFixed(2)})`,
+    title: `Triage: ${out.value.route} → [${out.value.targets.join(', ')}] · complexity=${out.value.complexity} · conf ${out.value.confidence.toFixed(2)}`,
     rationale_md: out.value.reasoning,
   });
   return out.value;

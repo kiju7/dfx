@@ -37,7 +37,8 @@ reward_weight: 1.0
       "title": "단일 도메인의 명확한 단위",
       "targets": ["frontend"],
       "brief": "이 sub-task에서 정확히 무엇을 해야 하는지. 입력/출력 조건, 영향 파일 힌트, 검증 방법.",
-      "depends_on": []
+      "depends_on": [],
+      "complexity": "simple" | "standard" | "complex"
     }
   ]
 }
@@ -50,6 +51,10 @@ reward_weight: 1.0
 - 작업이 사소(단일 파일 한두 줄)하면 sub-task는 **1개로 충분**. 쪼개는 것 자체가 비용이다.
 - API 계약·DB 스키마처럼 두 도메인이 합의해야 하는 부분은 brief에 명시.
 - `depends_on`은 다른 sub-task의 0-기반 인덱스. 비어있으면 즉시 시작 가능.
+- `complexity`는 sub-task별로 매긴다 (생략하면 standard). 오케스트레이터가 이 값을 보고 자동으로 Opus/Sonnet을 선택한다.
+  - `simple` — 자명한 작은 변경 (텍스트·색·literal). 모델 추론력 거의 불필요.
+  - `standard` — **기본값**. 일반 기능·버그·기존 패턴 따르는 작업.
+  - `complex` — 스키마 변경, 아키텍처 결정, 보안/인증, 명백한 기존 패턴 부재. 한 번에 잘해야 하는 작업.
 
 ## 분해 기준
 

@@ -1,5 +1,5 @@
 import { query, type SDKMessage, type Options } from '@anthropic-ai/claude-agent-sdk';
-import type { AgentSpec } from '@agent-forge/shared';
+import type { AgentSpec, Complexity } from '@agent-forge/shared';
 import { evaluateToolUse } from './hooks.js';
 
 export interface RunOptions {
@@ -10,6 +10,37 @@ export interface RunOptions {
   onMessage?: (msg: SDKMessage) => void;
   onToolBlocked?: (toolName: string, reason: string) => void;
   resume?: string;
+  /**
+   * Triage-assessed complexity of the task. When set and AGENT_FORGE_AUTO_TIER
+   * is not 'off', the orchestrator picks Opus for complex tasks and Sonnet for
+   * everything else. Explicit AGENT_FORGE_MODEL env still wins.
+   */
+  complexity?: Complexity;
+}
+
+const SONNET = 'claude-sonnet-4-6';
+const OPUS = 'claude-opus-4-7';
+
+export function pickModel(args: { spec: AgentSpec; complexity?: Complexity }): string {
+  // 1) Explicit env overrides win — operator knows best.
+  if (args.spec.role === 'triage') {
+    return process.env.AGENT_FORGE_TRIAGE_MODEL ?? args.spec.model;
+  }
+  if (process.env.AGENT_FORGE_MODEL) {
+    return process.env.AGENT_FORGE_MODEL;
+  }
+  // 2) Auto-tier driven by triage's complexity verdict.
+  const tier = (process.env.AGENT_FORGE_AUTO_TIER ?? 'on').toLowerCase();
+  if (tier !== 'off' && args.complexity) {
+    if (tier === 'eager') {
+      // Anything non-trivial gets Opus.
+      return args.complexity === 'simple' ? SONNET : OPUS;
+    }
+    // 'on' (default) and 'conservative' both mean: only complex → Opus.
+    return args.complexity === 'complex' ? OPUS : SONNET;
+  }
+  // 3) Fall back to the agent's own MD-declared model.
+  return args.spec.model;
 }
 
 export interface RunResult {
@@ -58,13 +89,7 @@ export async function runAgent(opts: RunOptions): Promise<RunResult> {
 
   const tools = allowedToolNames(opts.spec);
 
-  // Env overrides let one run-time switch upgrade all dev/QC agents to a
-  // bigger model without touching the agent MD files. Triage stays on its
-  // own (cheap) model unless a triage-specific override is set.
-  const effectiveModel =
-    opts.spec.role === 'triage'
-      ? process.env.AGENT_FORGE_TRIAGE_MODEL ?? opts.spec.model
-      : process.env.AGENT_FORGE_MODEL ?? opts.spec.model;
+  const effectiveModel = pickModel({ spec: opts.spec, complexity: opts.complexity });
 
   const sdkOptions: Options = {
     model: effectiveModel,
