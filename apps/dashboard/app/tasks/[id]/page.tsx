@@ -132,7 +132,7 @@ export default async function TaskDetail({ params }: { params: Promise<{ id: str
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6, marginBottom: 14 }}>
         {taskAgent && (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <span className={`avatar sm role-${taskAgent.role}`} title={taskAgent.displayName}>
+            <span className={`avatar sm role-${taskAgent.role}`} title={taskAgent.displayName} role="img" aria-label={taskAgent.displayName}>
               {taskAgent.initial}
             </span>
             <span style={{ fontWeight: 600 }}>{taskAgent.displayName}</span>
@@ -189,7 +189,7 @@ export default async function TaskDetail({ params }: { params: Promise<{ id: str
                   <td>{new Date(c.created_at).toLocaleTimeString()}</td>
                   <td>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                      <span className={`avatar sm role-${m.role}`} style={{ width: 20, height: 20, fontSize: 10 }}>
+                      <span className={`avatar sm role-${m.role}`} style={{ width: 20, height: 20, fontSize: 10 }} role="img" aria-label={m.displayName}>
                         {m.initial}
                       </span>
                       {m.displayName}
@@ -307,7 +307,7 @@ export default async function TaskDetail({ params }: { params: Promise<{ id: str
                   {/* QC 에이전트 */}
                   <td>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                      <span className={`avatar sm role-${qc.role}`} style={{ width: 20, height: 20, fontSize: 10 }}>
+                      <span className={`avatar sm role-${qc.role}`} style={{ width: 20, height: 20, fontSize: 10 }} role="img" aria-label={qc.displayName}>
                         {qc.initial}
                       </span>
                       {qc.displayName}
@@ -319,7 +319,7 @@ export default async function TaskDetail({ params }: { params: Promise<{ id: str
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                       {followupAgent ? (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                          <span className={`avatar sm role-${followupAgent.role}`} style={{ width: 20, height: 20, fontSize: 10 }}>
+                          <span className={`avatar sm role-${followupAgent.role}`} style={{ width: 20, height: 20, fontSize: 10 }} role="img" aria-label={followupAgent.displayName}>
                             {followupAgent.initial}
                           </span>
                           <span style={{ fontSize: 12 }}>→ {followupAgent.displayName}</span>
@@ -384,7 +384,7 @@ export default async function TaskDetail({ params }: { params: Promise<{ id: str
             const isSystem = m.sender_kind === 'system' && meta.role === 'system';
             return (
               <div className={`msg ${isSystem ? 'system' : ''}`} key={m.id}>
-                <span className={`avatar role-${meta.role}`} title={meta.displayName}>
+                <span className={`avatar role-${meta.role}`} title={meta.displayName} role="img" aria-label={meta.displayName}>
                   {meta.initial}
                 </span>
                 <div className="msg-body">

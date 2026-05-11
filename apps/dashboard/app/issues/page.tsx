@@ -188,7 +188,7 @@ export default async function IssuesPage({
                   </td>
                   <td>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                      <span className={`avatar sm role-${qc.role}`} style={{ width: 20, height: 20, fontSize: 10 }}>
+                      <span className={`avatar sm role-${qc.role}`} style={{ width: 20, height: 20, fontSize: 10 }} role="img" aria-label={qc.displayName}>
                         {qc.initial}
                       </span>
                       <span style={{ fontSize: 12 }}>{qc.displayName}</span>
@@ -199,6 +199,8 @@ export default async function IssuesPage({
                       className={`avatar sm role-${role}`}
                       style={{ width: 20, height: 20, fontSize: 10 }}
                       title={role}
+                      role="img"
+                      aria-label={role}
                     >
                       {role.slice(0, 1).toUpperCase()}
                     </span>

@@ -56,7 +56,7 @@ export default async function RequestDetail({ params }: { params: Promise<{ id: 
                   <td>
                     {meta ? (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                        <span className={`avatar sm role-${meta.role}`} style={{ width: 20, height: 20, fontSize: 10 }}>
+                        <span className={`avatar sm role-${meta.role}`} style={{ width: 20, height: 20, fontSize: 10 }} role="img" aria-label={meta.displayName}>
                           {meta.initial}
                         </span>
                         {meta.displayName}

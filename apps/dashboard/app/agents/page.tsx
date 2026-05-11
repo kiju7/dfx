@@ -32,7 +32,7 @@ export default function Agents() {
               <tr key={a.id}>
                 <td>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-                    <span className={`avatar role-${meta.role}`}>{meta.initial}</span>
+                    <span className={`avatar role-${meta.role}`} role="img" aria-label={meta.displayName}>{meta.initial}</span>
                     <span>
                       <div style={{ fontWeight: 600 }}>
                         {meta.emoji && <span style={{ marginRight: 4 }}>{meta.emoji}</span>}

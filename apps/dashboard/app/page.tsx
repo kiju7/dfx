@@ -84,7 +84,7 @@ export default function Page() {
                       <div className="title">{t.title}</div>
                       <div className="meta">
                         {meta && (
-                          <span className={`avatar sm role-${meta.role}`} style={{ width: 18, height: 18, fontSize: 9 }} title={meta.displayName}>
+                          <span className={`avatar sm role-${meta.role}`} style={{ width: 18, height: 18, fontSize: 9 }} title={meta.displayName} role="img" aria-label={meta.displayName}>
                             {meta.initial}
                           </span>
                         )}

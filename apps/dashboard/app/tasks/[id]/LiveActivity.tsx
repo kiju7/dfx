@@ -182,7 +182,7 @@ export default function LiveActivity({
           const meta = getAgentMeta(g.agentId);
           return (
             <div key={`${g.agentId}-${gi}`} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-              <span className={`avatar sm role-${meta.role}`} title={meta.displayName}>
+              <span className={`avatar sm role-${meta.role}`} title={meta.displayName} role="img" aria-label={meta.displayName}>
                 {meta.initial}
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
