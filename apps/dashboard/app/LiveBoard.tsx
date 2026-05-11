@@ -29,7 +29,7 @@ export default function LiveBoard() {
   }, [router]);
 
   return (
-    <div style={{ fontSize: 11, color: '#8b949e', marginBottom: 12 }}>
+    <div role="status" aria-live="polite" style={{ fontSize: 11, color: '#8b949e', marginBottom: 12 }}>
       live: {lastEvent || 'waiting…'}
     </div>
   );
