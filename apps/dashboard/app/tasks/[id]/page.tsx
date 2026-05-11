@@ -3,9 +3,91 @@ import Link from 'next/link';
 import { queries } from '@agent-forge/db';
 import LiveBoard from '../../LiveBoard';
 import LiveActivity from './LiveActivity';
-import { getAgentMeta } from '../../../lib/agent-meta';
+import { getAgentMeta, type AgentMeta } from '../../../lib/agent-meta';
 
 export const dynamic = 'force-dynamic';
+
+// ─── 유틸 ─────────────────────────────────────────────────────────────────────
+
+/**
+ * id 표시용 말미 n자 슬라이스.
+ * id가 n자 미만이면 앞을 '·'로 패딩해 항상 n자폭을 유지한다.
+ * → 레이아웃이 id 길이에 무관하게 일정한 너비를 갖는다.
+ */
+function tailId(id: string, n: number): string {
+  if (id.length >= n) return id.slice(-n);
+  return id.padStart(n, '·');
+}
+
+// ─── Finding + ralph run 연결 타입 ───────────────────────────────────────────
+
+type RalphRunRow = ReturnType<typeof queries.ralph.byTask>[number];
+type FindingRow = ReturnType<typeof queries.findings.byTask>[number];
+
+interface FindingWithRalph {
+  finding: FindingRow;
+  /** finding_id로 매칭된 ralph run (없으면 null) */
+  ralphRun: RalphRunRow | null;
+  /** ralph run → task → agent_id 로 얻은 에이전트 메타 (없으면 null) */
+  followupAgent: AgentMeta | null;
+}
+
+// ─── 상태 배지 헬퍼 ──────────────────────────────────────────────────────────
+
+/**
+ * ralph run의 상태를 결정:
+ * - ended_at null  → 진행 중 (blue)
+ * - exit_reason === 'qc_passed' → 처리 완료 (green)
+ * - exit_reason === 'aborted' | 'max_iter' | 'error' → 실패 (red)
+ * - null (ralph run 자체 없음) → unassigned (orange)
+ */
+function ralphStatusBadge(ralphRun: RalphRunRow | null): {
+  label: string;
+  color: string;
+  bg: string;
+} {
+  if (!ralphRun) {
+    // unassigned → orange 강조
+    return {
+      label: 'unassigned',
+      color: '#c2410c',
+      bg: 'color-mix(in srgb, #f97316 18%, white)',
+    };
+  }
+  if (ralphRun.ended_at === null) {
+    return {
+      label: '처리 중',
+      color: '#1d4ed8',
+      bg: 'color-mix(in srgb, #3b82f6 15%, white)',
+    };
+  }
+  if (ralphRun.exit_reason === 'qc_passed') {
+    return {
+      label: '처리 완료',
+      color: '#15803d',
+      bg: 'color-mix(in srgb, var(--st-done) 15%, white)',
+    };
+  }
+  if (
+    ralphRun.exit_reason === 'aborted' ||
+    ralphRun.exit_reason === 'max_iter' ||
+    ralphRun.exit_reason === 'error'
+  ) {
+    return {
+      label: '실패',
+      color: '#b91c1c',
+      bg: 'color-mix(in srgb, #ef4444 15%, white)',
+    };
+  }
+  // exit_reason이 알 수 없는 값인 경우 → 에스컬레이션
+  return {
+    label: '에스컬레이션',
+    color: '#b45309',
+    bg: 'color-mix(in srgb, #f59e0b 15%, white)',
+  };
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -18,6 +100,21 @@ export default async function TaskDetail({ params }: { params: Promise<{ id: str
   const costDetail = queries.costs.byTask(id);
 
   const taskAgent = task.agent_id ? getAgentMeta(task.agent_id) : null;
+
+  // ── finding별 ralph run + followup agent 연결 ──
+  // Decision: ralph run은 finding_id 컬럼으로 finding을 참조한다.
+  // ralph run이 있으면 그 task_id로 담당 task를 조회해 agent_id를 꺼낸다.
+  // getById 호출은 finding당 최대 1회이며 SQLite read라 성능 문제 없음.
+  const findingsWithRalph: FindingWithRalph[] = findings.map((f) => {
+    const ralphRun = ralph.find((r) => r.finding_id === f.id) ?? null;
+    if (!ralphRun) {
+      return { finding: f, ralphRun: null, followupAgent: null };
+    }
+    const followupTask = queries.tasks.getById(ralphRun.task_id);
+    const followupAgent =
+      followupTask?.agent_id ? getAgentMeta(followupTask.agent_id) : null;
+    return { finding: f, ralphRun, followupAgent };
+  });
 
   return (
     <>
@@ -39,7 +136,7 @@ export default async function TaskDetail({ params }: { params: Promise<{ id: str
         </span>
         <span style={{ color: 'var(--fg-muted)' }}>·</span>
         <Link href={`/requests/${task.request_id}`} style={{ fontSize: 13 }}>
-          request {task.request_id.slice(-8)}
+          request {tailId(task.request_id, 8)}
         </Link>
       </div>
 
@@ -103,22 +200,103 @@ export default async function TaskDetail({ params }: { params: Promise<{ id: str
         </table>
       )}
 
+      {/* ── QC findings (카드형) ─────────────────────────────────────────── */}
       <h2>QC findings ({findings.length})</h2>
       {findings.length === 0 ? (
         <div className="empty">아직 발견된 finding이 없습니다.</div>
       ) : (
         <table className="table findings">
           <thead>
-            <tr><th>severity</th><th>category</th><th>title</th><th>QC</th><th>resolved</th></tr>
+            <tr>
+              <th>severity</th>
+              <th>category</th>
+              <th>title</th>
+              <th>QC</th>
+              <th>→ agent</th>
+              <th>resolved</th>
+            </tr>
           </thead>
           <tbody>
-            {findings.map((f) => {
+            {findingsWithRalph.map(({ finding: f, ralphRun: rr, followupAgent }) => {
               const qc = getAgentMeta(f.qc_agent_id);
+              const badge = ralphStatusBadge(rr);
+
               return (
+                /* details로 인라인 펼침 — 클릭 시 ralph run 상세 표시 */
                 <tr key={f.id}>
                   <td><span className={`severity ${f.severity}`}>{f.severity}</span></td>
                   <td>{f.category}</td>
-                  <td>{f.title}</td>
+                  <td>
+                    {/* details: summary = finding 제목, 펼치면 ralph 상세 */}
+                    <details style={{ cursor: 'pointer' }}>
+                      <summary style={{
+                        listStyle: 'none',
+                        fontWeight: 500,
+                        color: 'var(--fg)',
+                        userSelect: 'none',
+                      }}>
+                        {/* ▶/▼ 커스텀 토글 아이콘 (CSS ::-webkit-details-marker 숨김 대안) */}
+                        <span aria-hidden="true" style={{
+                          display: 'inline-block',
+                          width: 14,
+                          fontSize: 9,
+                          color: 'var(--fg-subtle)',
+                          marginRight: 4,
+                        }}>▶</span>
+                        {f.title}
+                      </summary>
+
+                      {/* ── ralph run 상세 패널 ──────────────────────── */}
+                      <div style={{
+                        marginTop: 8,
+                        padding: '10px 12px',
+                        background: 'var(--bg-sunken)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 6,
+                        fontSize: 12,
+                        lineHeight: 1.6,
+                        color: 'var(--fg-muted)',
+                      }}>
+                        {rr ? (
+                          <>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '2px 12px' }}>
+                              <span style={{ color: 'var(--fg-subtle)' }}>run id</span>
+                              <code style={{ fontSize: 11 }}>{rr.id}</code>
+
+                              <span style={{ color: 'var(--fg-subtle)' }}>iterations</span>
+                              <span>{rr.iterations} / {rr.max_iterations}</span>
+
+                              <span style={{ color: 'var(--fg-subtle)' }}>exit reason</span>
+                              <span>{rr.exit_reason ?? '—'}</span>
+
+                              <span style={{ color: 'var(--fg-subtle)' }}>started</span>
+                              <span>{new Date(rr.started_at).toLocaleString()}</span>
+
+                              {rr.ended_at !== null && (
+                                <>
+                                  <span style={{ color: 'var(--fg-subtle)' }}>ended</span>
+                                  <span>{new Date(rr.ended_at).toLocaleString()}</span>
+                                </>
+                              )}
+
+                              <span style={{ color: 'var(--fg-subtle)' }}>linked task</span>
+                              <span>
+                                <Link href={`/tasks/${rr.task_id}`} style={{ fontSize: 12 }}>
+                                  {tailId(rr.task_id, 12)}
+                                </Link>
+                              </span>
+                            </div>
+                          </>
+                        ) : (
+                          <span style={{ color: 'var(--fg-subtle)', fontStyle: 'italic' }}>
+                            연결된 ralph run 없음 — 아직 라우팅되지 않았습니다.
+                          </span>
+                        )}
+                      </div>
+                    </details>
+                  </td>
+
+                  {/* QC 에이전트 */}
                   <td>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                       <span className={`avatar sm role-${qc.role}`} style={{ width: 20, height: 20, fontSize: 10 }}>
@@ -127,6 +305,38 @@ export default async function TaskDetail({ params }: { params: Promise<{ id: str
                       {qc.displayName}
                     </span>
                   </td>
+
+                  {/* → agent 컬럼: followup 에이전트 + 상태 배지 */}
+                  <td>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {followupAgent ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          <span className={`avatar sm role-${followupAgent.role}`} style={{ width: 20, height: 20, fontSize: 10 }}>
+                            {followupAgent.initial}
+                          </span>
+                          <span style={{ fontSize: 12 }}>→ {followupAgent.displayName}</span>
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: 12, color: 'var(--fg-subtle)' }}>→ unassigned</span>
+                      )}
+                      {/* 상태 배지 */}
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '2px 7px',
+                        borderRadius: 999,
+                        fontSize: 10.5,
+                        fontWeight: 600,
+                        letterSpacing: '0.01em',
+                        color: badge.color,
+                        background: badge.bg,
+                        border: `1px solid ${badge.color}40`,
+                        alignSelf: 'flex-start',
+                      }}>
+                        {badge.label}
+                      </span>
+                    </div>
+                  </td>
+
                   <td>{f.resolved_at ? '✓' : '—'}</td>
                 </tr>
               );
