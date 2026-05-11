@@ -18,7 +18,7 @@ export default function Page() {
 
   return (
     <>
-      <h1>Board</h1>
+      <h1>Task Board</h1>
       <p style={{ color: '#8b949e' }}>
         Tasks across all requests. <Link href="/new">Submit a new request</Link>.
       </p>
