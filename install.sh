@@ -95,7 +95,7 @@ ${c_g}✓${c_x} agent-forge 설치 완료
 
 ${c_b}위치:${c_x}        $TARGET
 ${c_b}슬래시:${c_x}      /forge  (어디서든 Claude Code 안에서 사용 가능)
-${c_b}대시보드:${c_x}    http://localhost:3000  (기동 후)
+${c_b}대시보드:${c_x}    http://localhost:54317  (기동 후)
 ${c_b}오케스트레이터:${c_x} http://127.0.0.1:4317  (기동 후)
 
 ${c_b}다음 단계:${c_x}

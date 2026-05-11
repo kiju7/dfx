@@ -152,8 +152,8 @@ claude
 
 기대 동작:
 1. 약 5초 안에 오케스트레이터+대시보드 자동 기동
-2. "agent-forge ready · auto-tier · http://localhost:3000" 메시지
-3. 브라우저로 <http://localhost:3000> 열면 빈 칸반 보드 보임
+2. "agent-forge ready · auto-tier · http://localhost:54317" 메시지
+3. 브라우저로 <http://localhost:54317> 열면 빈 칸반 보드 보임
 
 > **참고: npm 글로벌 설치는 아직 지원하지 않음.** 향후 `npm install -g @kiju7/agent-forge` 옵션 추가 예정. 현재는 한 줄 설치 스크립트가 사실상 동일 UX 입니다.
 
@@ -165,7 +165,7 @@ claude
 
 ```
 > /forge
-agent-forge ready · auto-tier · http://localhost:3000
+agent-forge ready · auto-tier · http://localhost:54317
 Describe your task; I'll classify, submit, and report.
 
 > 칸반 카드 마우스 호버 시 배경 살짝 밝아지게
@@ -189,7 +189,7 @@ Describe your task; I'll classify, submit, and report.
 | `help` / `도움` | 메타 명령 리스트 |
 | `exit` / `끝` / `bye` | 대화 모드 종료 (서버는 유지) |
 
-### 대시보드 페이지 (`http://localhost:3000`)
+### 대시보드 페이지 (`http://localhost:54317`)
 
 | 라우트 | 내용 |
 |---|---|
@@ -263,7 +263,7 @@ agent-forge/
 | `spawn node ENOENT` | 쉘에서 `corepack enable pnpm` 다시. claude를 그 쉘에서 재기동 |
 | `git worktree add` 실패 | 초기 커밋 없음 → `git add -A && git commit -m init` |
 | Claude 인증 오류 | 쉘에서 `claude` 한 번 실행해 OAuth 로그인 갱신 |
-| 포트 충돌 (`4317`/`3000`) | 기존 프로세스 종료: `lsof -ti:4317 \| xargs kill` |
+| 포트 충돌 (`4317`/`54317`) | 기존 프로세스 종료: `lsof -ti:4317 \| xargs kill` |
 | DB 상태 이상 | `rm data/app.db* && pnpm migrate` (모든 데이터 초기화됨) |
 | 대시보드 SSE 안 옴 | 오케스트레이터와 대시보드가 같은 워크스페이스 루트에서 실행됐는지 확인 |
 

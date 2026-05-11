@@ -9,7 +9,7 @@ You are now in **agent-forge interactive mode**. From this point on, treat every
 
 1. **Check whether agent-forge is already up:**
    - `curl -sf http://127.0.0.1:4317/health` — orchestrator
-   - `curl -sf http://127.0.0.1:3000/` — dashboard
+   - `curl -sf http://127.0.0.1:54317/` — dashboard
    If both respond, skip to step 3.
 
 2. **If anything is down**, start it as a background process with the Bash tool (`run_in_background=true`):
@@ -20,7 +20,7 @@ You are now in **agent-forge interactive mode**. From this point on, treat every
 
 3. **Welcome:**
    ```
-   agent-forge ready · auto-tier (Sonnet default, Opus on complex) · http://localhost:3000
+   agent-forge ready · auto-tier (Sonnet default, Opus on complex) · http://localhost:54317
    Describe your task; I'll classify, submit, and report.
    Meta: "status" · "stop" · "tail" · "last" · "switch to opus/sonnet" · "help".
    ```
