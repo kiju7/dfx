@@ -38,80 +38,50 @@ You are now in **agent-forge interactive mode**. From this point on, treat every
    - `qc` — explicit quality check / audit
 2. **Draft** a clean title (≤ 80 chars) and body_md (concise: which files/areas, expected outcome, non-obvious constraints). Don't over-explain — agents read the code themselves.
 3. **POST** to `http://127.0.0.1:4317/requests` with the JSON, capture the returned `id`.
-4. **Print a single live-link line** right away (no formatting block, just a plain line):
+
+4. **Print one quiet line** with the live dashboard link, then go silent:
 
    ```
-   🔗 Live: http://localhost:54317/tasks/<id>
+   🔗 http://localhost:54317/tasks/<id>  ·  live activity in the browser
    ```
 
-5. **Stream events with Monitor**, NOT a bash tail loop. Strict rules:
-   - Run exactly **one** Monitor tool on `tail -F /Users/jd-kimkiju/Projects/agent-forge/data/events.ndjson | grep -E '"(requestId|taskId)":"<id>|<known-task-ids>"'` (use a single grep that grows as new task ids appear, or simpler — match the requestId).
-   - Each notification = one line from `events.ndjson`. **Render one short text line per notification** in your reply. Do NOT batch, do NOT include the raw JSON, do NOT call TaskOutput to snapshot.
-   - Render mapping (see emoji table below).
-   - Stop the Monitor when `request.status_changed` reaches `done` or `blocked` (use `stop_pattern` in Monitor with regex like `"request\.status_changed".*"(done|blocked)"`).
-   - Hard cap: 540s. If Monitor times out, print `⌛ timeout — see browser dashboard` and stop.
+5. **Wait for completion — quietly.** This is the part most prone to chat pollution; follow these rules strictly:
 
-6. **Summary at end** (single message after Monitor exits):
-   - Final status, new commits (`git log --oneline -5`)
-   - Total cost (`SELECT SUM(cost_usd) FROM task_costs WHERE request_id='<id>' OR task_id IN (SELECT id FROM tasks WHERE request_id='<id>')`)
-   - Findings count (resolved / total)
-   - Decisions worth surfacing
+   - Run **exactly one Bash command in the background** that does the actual waiting. Use this pattern (substitute `<id>`):
 
-7. **Warn proactively** if cost > $5 or wall-clock > 8 minutes.
+     ```bash
+     REQ=<id>
+     until grep -q "\"request\.status_changed\".*\"requestId\":\"$REQ\".*\"to\":\"\(done\|blocked\)\"" \
+       /Users/jd-kimkiju/Projects/agent-forge/data/events.ndjson 2>/dev/null; do sleep 4; done
+     ```
 
-#### Line-by-line rendering — strict format
+   - **Do NOT** start Monitor. **Do NOT** call TaskOutput while it runs. **Do NOT** print activity events as they arrive. The browser has the live view; chat doesn't repeat it.
 
-Agent role emojis:
-- triage 🧭 · pm 📋 · frontend 🎨 · backend 🛠 · database 🗄 · devops 🚀
-- daemon ⚙️ · ux ✨ · ai 🤖 · qc 🔍 · orchestrator/ralph 🔁
+   - **Optional heartbeat** — at most one short status line every 30 seconds while waiting. Plain text, no code block. Example: `… 1m 12s · 2 agents 진행 중`. If you'd rather stay silent, that's also fine. Never emit more than one heartbeat in any 25-second window.
 
-One event → exactly one line. **No code blocks, no bullets, no nesting.** Indent activity lines with three spaces:
+   - Hard wall-clock cap **540s**. If exceeded, print `⌛ timeout — http://localhost:54317/tasks/<id>` and stop.
 
-| Event kind                        | Render this single line |
-|---|---|
-| `request.received`                | (skip — already covered by step 4 link line) |
-| `request.status_changed`          | `▶ <to>` (e.g. `▶ executing`) once, but skip `triage→executing` if it's right after task.created |
-| `task.created` (agent X starts)   | `<emoji> <DisplayName>  ▸ <title-short>` (no body) |
-| `task.status_changed` qc→done     | `   ✓ <agent> done` |
-| `task.status_changed` qc→blocked  | `   ⤴ <agent> blocked` |
-| `task.status_changed` qc→failed   | `   ✗ <agent> failed` |
-| `agent.activity` reading          | `   📂 <target>` |
-| `agent.activity` editing          | `   ✏️ <target>` |
-| `agent.activity` writing          | `   📝 <target>` |
-| `agent.activity` searching        | `   🔎 <target>` |
-| `agent.activity` running          | `   🐚 <target>` (Bash head ≤ 60 chars) |
-| `agent.activity` fetching         | `   🌐 <target>` |
-| `agent.activity` other            | `   · <tool>` |
-| `qc.finding`                      | `   ⚠️ <severity>/<category> — <title>` (omit nit) |
-| `ralph.iteration`                 | `🔁 <agent> Ralph iter <N>` |
-| `ralph.exit qc_passed`            | `   ✓ resolved` |
-| `ralph.exit max_iter`             | `   ✗ exhausted` |
-| `ralph.exit aborted`              | `   ⤴ escalated` |
+6. **One consolidated summary** when the wait command exits (a single message — no streaming):
 
-Hard rule: **no JSON, no Markdown headings, no Task Output snapshots, no bash `until` loops in foreground.** Just plain text lines, indented as above. The browser at `http://localhost:54317/tasks/<id>` is the rich view; chat is the lightweight tail.
+   ```
+   ▶ done · commit abc1234 · $0.18 · 1 finding resolved
 
-Noise suppression: same-target reading/searching called 3+ times in <5s → emit only the first; keep a tiny in-memory set and skip duplicates.
+   what happened
+   · frontend-lead   edited apps/dashboard/app/globals.css
+   · qc-ux           raised 1 minor (resolved by Ralph)
 
-End example:
+   🔗 http://localhost:54317/tasks/<id>   (full activity)
+   ```
 
-```
-🔗 Live: http://localhost:54317/tasks/01KRAMPM95...
-🧭 Triage ▸ direct · frontend · complexity=simple
-🎨 Frontend Lead  ▸ Kanban card hover brightness
-   📂 apps/dashboard/app/globals.css
-   ✏️ apps/dashboard/app/globals.css
-   🐚 pnpm --filter @agent-forge/dashboard build
-   ✓ frontend-lead done
-🔍 qc-edgecase  ▸ review
-🔍 qc-ux        ▸ review
-   ⚠️ minor/ui — hardcoded color literals
-🔁 frontend-lead Ralph iter 1
-   ✏️ apps/dashboard/app/globals.css
-   ✓ resolved
-▶ done
-```
+   Source the bullets from SQLite (`messages`, `qc_findings`, `git log -1`) — not from re-tailing events. Keep it to ≤ 6 bullets total. If `blocked`, say why ("ESCALATE: ..." or escalation decision) and link to /tasks/[id].
 
-Final summary message after that (cost / commit / findings).
+7. **Cost warning** — if `SELECT SUM(cost_usd) ...` > $5 by the time you summarize, lead the summary with `⚠ $X spent`.
+
+Hard rules (for chat hygiene):
+- **No per-event chat lines.** No emoji activity stream. No "Reading apps/dashboard/...".
+- **No Monitor tool.** No TaskOutput snapshots. No bash `until` loop in the foreground.
+- **No code blocks dumping JSON.** Summary uses prose / bullets only.
+- The browser dashboard at `http://localhost:54317/tasks/<id>` is the live view. Chat is just "submitted → quiet → done summary".
 
 ### Meta-actions (Korean and English literal intents)
 
