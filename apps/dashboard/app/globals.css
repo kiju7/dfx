@@ -131,7 +131,10 @@ h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--
   margin-top: 16px;
 }
 @media (max-width: 1100px) { .kanban { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 720px)  { .kanban { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 720px)  {
+  .kanban { grid-template-columns: repeat(2, 1fr); }
+  .card-link { min-height: 44px; }
+}
 .column {
   background: var(--bg-elev);
   border: 1px solid var(--border);
