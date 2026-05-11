@@ -55,18 +55,24 @@ export function byId(id: string): AgentRow | undefined {
 }
 
 export interface LeaderboardRow extends AgentRow {
-  total_points: number;
   findings_count: number;
 }
 
+// Leaderboard now ranks QC agents purely by raw finding count. The previous
+// reward-points column has been removed; consumers that want severity-weighted
+// ranking should compute it client-side from qc_findings.severity.
 export function leaderboard(limit = 20): LeaderboardRow[] {
   return getReader()
     .prepare(
-      `SELECT a.*, COALESCE(s.total_points, 0) AS total_points, COALESCE(s.findings_count, 0) AS findings_count
+      `SELECT a.*, COALESCE(s.findings_count, 0) AS findings_count
        FROM agents a
-       LEFT JOIN qc_scores s ON s.agent_id = a.id
+       LEFT JOIN (
+         SELECT qc_agent_id, COUNT(*) AS findings_count
+         FROM qc_findings
+         GROUP BY qc_agent_id
+       ) s ON s.qc_agent_id = a.id
        WHERE a.role = 'qc'
-       ORDER BY total_points DESC, findings_count DESC
+       ORDER BY findings_count DESC, a.id ASC
        LIMIT ?`
     )
     .all(limit) as unknown as LeaderboardRow[];

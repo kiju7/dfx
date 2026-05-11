@@ -10,7 +10,6 @@ export interface FindingRow {
   category: string;
   title: string;
   detail_md: string;
-  reward_points: number;
   resolved_at: number | null;
   created_at: number;
 }
@@ -22,13 +21,12 @@ export function insert(input: {
   category: string;
   title: string;
   detail_md?: string;
-  reward_points: number;
 }): string {
   const id = ulid();
   getWriter()
     .prepare(
-      `INSERT INTO qc_findings (id, task_id, qc_agent_id, severity, category, title, detail_md, reward_points, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO qc_findings (id, task_id, qc_agent_id, severity, category, title, detail_md, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       id,
@@ -38,7 +36,6 @@ export function insert(input: {
       input.category,
       input.title,
       input.detail_md ?? '',
-      input.reward_points,
       nowMs()
     );
   return id;
@@ -71,9 +68,10 @@ export interface DailyCount {
   qc_agent_id: string;
   bucket_day: number;
   findings: number;
-  points: number;
 }
 
+// Count-only daily rollup. Reward points are gone; severity-weighted views, if
+// ever needed, should be computed in the consumer from `severity`.
 export function dailyForLastDays(days: number): DailyCount[] {
   const sinceMs = Date.now() - days * 86_400_000;
   return getReader()
@@ -81,8 +79,7 @@ export function dailyForLastDays(days: number): DailyCount[] {
       `SELECT
          qc_agent_id,
          CAST(created_at / 86400000 AS INTEGER) * 86400000 AS bucket_day,
-         COUNT(*)                        AS findings,
-         COALESCE(SUM(reward_points), 0) AS points
+         COUNT(*) AS findings
        FROM qc_findings
        WHERE created_at >= ?
        GROUP BY qc_agent_id, bucket_day
