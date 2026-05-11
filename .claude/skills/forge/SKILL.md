@@ -18,24 +18,24 @@ The user's request is in the `$ARGUMENTS` value the slash command passed (or the
 Spawn `Task(subagent_type: "triage")` with the raw user request. It returns JSON:
 
 ```json
-{ "kind": "...", "route": "pm"|"direct", "targets": [...], "complexity": "...", "confidence": 0.x, "reasoning": "..." }
+{ "kind": "...", "route": "pm"|"direct", "targets": [...], "confidence": 0.x, "reasoning": "..." }
 ```
 
 Parse it. Print one short status line:
 
-> 🎯 **Triage** — `<kind>` · route=`<route>` · targets=`<targets>` · complexity=`<complexity>`
+> 🎯 **Triage** — `<kind>` · route=`<route>` · targets=`<targets>`
 
 ### 2. Plan  (only if route == "pm")
 
 If `route == "pm"`, spawn `Task(subagent_type: "pm")` with the request. It returns:
 
 ```json
-{ "summary": "...", "subtasks": [ { "title": "...", "targets": ["frontend"], "brief": "...", "depends_on": [], "complexity": "..." } ] }
+{ "summary": "...", "subtasks": [ { "title": "...", "targets": ["frontend"], "brief": "...", "depends_on": [] } ] }
 ```
 
 If `route == "direct"`, synthesize one subtask:
 ```json
-[{ "title": "<short>", "targets": triage.targets, "brief": <원본 요청>, "depends_on": [], "complexity": triage.complexity }]
+[{ "title": "<short>", "targets": triage.targets, "brief": <원본 요청>, "depends_on": [] }]
 ```
 
 Print:
@@ -51,9 +51,11 @@ Group subtasks into dependency layers:
 - Layer 1 = subtasks whose deps are all in layer 0
 - ... etc.
 
-**Within a layer, run all subtasks in parallel** by emitting multiple `Task` tool calls in a single assistant message. Each Task uses `subagent_type` = the subtask's first target role (`frontend | backend | database | devops | daemon | ai | ux`). Pass the brief as the prompt; include the original user request as context.
+**Within a layer, run subtasks in parallel** by emitting multiple `Task` tool calls in a single assistant message. Each Task uses `subagent_type` = the subtask's first target role (`frontend | backend | database | devops | daemon | ai | ux`). Pass the brief as the prompt; include the original user request as context.
 
-Each dev subagent returns either `TASK_DONE` or `ESCALATE: <reason>`. Capture each result.
+**Same-role serialization** — 한 layer 안에 동일 role subtask 가 2개 이상이면, 그것들끼리는 **직렬 spawn** (한 메시지에 1 Task → `TASK_DONE` 받고 → 다음 메시지에 다음 Task). 같은 파일 동시 편집으로 인한 lost-update 방지. 다른 role 끼리는 여전히 같은 메시지에서 병렬 spawn.
+
+Each dev subagent returns a `WORK_SUMMARY:` block followed by `TASK_DONE` (or `ESCALATE: <reason>`). **Capture and store the WORK_SUMMARY per role** — used in step 5 when spawning fix tasks so the new agent inherits the prior agent's context.
 
 After each layer, print:
 
@@ -86,15 +88,18 @@ a. **Route by category** — 각 non-`nit` finding 을 담당 role 로 매핑:
    - `perf` → finding 의 파일 경로로 추론
    - 그 외 → `backend`
 
-b. **Group by role**, role 마다 Task 1개 **병렬 spawn** (한 메시지 안에 N Task). 프롬프트에 해당 role 의 findings 목록 + "Fix each finding. Return `TASK_DONE` after all are addressed."
+b. **Group by role**, role 마다 Task 1개 **병렬 spawn** (한 메시지 안에 N Task). 프롬프트에 다음을 모두 포함:
+   - 원본 user 요청 (한 줄)
+   - 해당 role 이 직전에 반환한 **WORK_SUMMARY** (있으면 — 이전 인스턴스의 files_touched / key_decisions / assumptions / not_done)
+   - 이번 iter 가 다룰 finding 목록
+   - 지시: "Before editing, run `git diff HEAD` to see the current code state. **The diff is ground truth — if it disagrees with the summary, trust the diff.** Fix each finding. Return `WORK_SUMMARY` + `TASK_DONE`."
 
 c. **모든 dev Task 가 끝나면 step 4 (QC 4종 병렬) 재실행**.
 
-d. **Iteration 종료 조건**:
+d. **Iteration 종료 조건** (Ralph — 수렴은 상태로만 판정, 외부 카운터 없음):
    - non-`nit` findings 가 0 → ✅ 수렴 성공, 루프 종료
    - 같은 finding (제목 또는 파일+카테고리) 이 **2회 연속 미해결** → 그 finding 을 `STUCK` 으로 마킹하고 다음 iteration 의 fix 대상에서 제외 (다른 finding 들은 계속 처리)
    - 모든 잔여 finding 이 `STUCK` 으로 마킹됨 → ⚠ 수렴 실패, 루프 종료 (요약에서 escalation 으로 보고)
-   - **하드 캡**: `MAX_ITERATIONS = 10` (비용 폭주 안전장치). 도달 시 ⌛ 종료.
 
 e. **사이클마다 한 줄 출력**:
 

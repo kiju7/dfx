@@ -26,9 +26,9 @@ Multi-agent engineering pipeline that runs natively inside Claude Code via `Task
 
 ## Subagent roles
 
-- `triage` (haiku) — routing + complexity verdict, JSON output, read-only
-- `pm` (sonnet) — multi-domain subtask decomposition, JSON output, read-only
-- Devs (sonnet, Read/Edit/Write/Bash): `frontend`, `backend`, `database`, `devops`, `daemon`, `ux`, `ai` — each with scoped allowed paths in the prompt body
+- `triage` (haiku) — routing decision, JSON output, read-only
+- `pm` (opus) — multi-domain subtask decomposition, JSON output, read-only
+- Devs (opus, Read/Edit/Write/Bash): `frontend`, `backend`, `database`, `devops`, `daemon`, `ux`, `ai` — each with scoped allowed paths in the prompt body
 - QC (sonnet, read-only, JSON): `qc-edgecase`, `qc-security`, `qc-perf`, `qc-ux`
 
 ## Editing rules

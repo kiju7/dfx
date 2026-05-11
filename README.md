@@ -12,7 +12,7 @@
 사용자 요청
    │
    ▼
-🧭 Triage  (Haiku · 어디로 보낼지, complexity)
+🧭 Triage  (Haiku · 어디로 보낼지)
    │
    ├─ direct ─────────────────┐
    │                          │
@@ -31,8 +31,9 @@
                             └──────────┴──────────┴──────┴──────┘
                                           │
                             findings 있으면 ↻ Ralph Loop
-                            (clean 될 때까지, max 10 iter ·
-                             같은 finding 2회 미해결 = STUCK)
+                            (clean 될 때까지 무한 반복 ·
+                             같은 finding 2회 미해결 = STUCK
+                             모두 STUCK 이면 escalate)
                                           │
                                           ▼
                                    🏁 consolidated summary
@@ -119,7 +120,7 @@ rm -rf /tmp/agent-forge
 ### 출력 형식 (parent chat)
 
 ```
-🎯 Triage — fix · route=direct · targets=frontend · complexity=simple
+🎯 Triage — fix · route=direct · targets=frontend
 📋 Plan — 1 subtasks
   · [frontend] globals.css hover 변경
 ✅ Layer 0 — 1/1 done · escalations: none
@@ -145,12 +146,14 @@ subagent 내부 로그는 **parent chat 에 새지 않습니다** — Task subag
 
 | 작업 규모 | 모델 분포 | 1 회 비용 추정 |
 |---|---|---|
-| 단순 fix (한 파일) | Triage(Haiku) + dev(Sonnet) + QC×4(Sonnet) | $0.10–0.40 |
-| 일반 기능 / 버그 | + PM(Sonnet) + Ralph 1~2 iter | $0.50–2.50 |
-| 다중 도메인 신규 기능 | dev 여러 개 병렬 + QC×4 + Ralph 2~5 iter | $2–10 |
+| 단순 fix (한 파일) | Triage(Haiku) + dev(Opus) + QC×4(Sonnet) | $0.40–1.50 |
+| 일반 기능 / 버그 | + PM(Opus) + Ralph 1~2 iter | $2–8 |
+| 다중 도메인 신규 기능 | dev 여러 개 병렬(Opus) + QC×4 + Ralph 2~5 iter | $8–30 |
+
+기본 티어: triage = haiku (분류), QC×4 = sonnet (바운디드 diff 리뷰), pm + 7 devs = opus (실제 추론·편집).
 
 비용 제어:
-- 모델은 각 subagent MD 의 `model:` 필드에 박혀 있음 — 비싸다 싶으면 `.claude/agents/<name>.md` 의 `model: sonnet` → `haiku` 로 다운그레이드.
+- 비싸다 싶으면 `.claude/agents/<dev>.md` 의 `model: opus` → `sonnet` 로 다운그레이드 (품질 vs 비용 트레이드).
 - QC 4개를 줄이고 싶으면 `.claude/skills/forge/SKILL.md` 의 "Step 4" 에서 일부 제외.
 
 ---
