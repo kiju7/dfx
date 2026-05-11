@@ -35,9 +35,28 @@ tools: [Read, Edit, Write, Glob, Grep, Bash]
 
 판단은 변경의 **관찰 가능한 동작** 유무로 — 있으면 적용, 없으면 skip.
 
-# 출력
+# 설계 점검 (Discovery 후, 편집 전)
 
-`TASK_DONE` 직전에 다음 블록 필수:
+Discovery 에서 디자인 토큰·컴포넌트를 읽었으면, 편집 시작 전 세 질문 자문:
+
+A. **brief 의 가정이 디자인 현실과 맞나?**
+   - "X 컴포넌트 / 토큰 변경" 인데 그게 실제로 존재하나?
+   - 토큰 원천·테마 provider·컨벤션 봤나?
+B. **brief 의 동사 해석이 명확한가?**
+   - "정리 / 단순화 / refactor / 제거 / 통일" 같은 모호 동사 발견 시:
+     기존 토큰 유지하며 사용 위치만 정리할 건지, 토큰 자체 제거인지
+   - 두 해석 다 합리적이면 ASK_USER 로
+C. **영향 범위가 brief 가 암시한 것과 일치하나?**
+   - 한 컴포넌트 변경이 디자인 시스템 토큰 변경으로 캐스케이드 영향?
+
+세 질문 다 ✅ → 편집 진행, `WORK_SUMMARY + TASK_DONE`.
+하나라도 ❌ → 편집 멈추고 `SUGGEST_REVISION` 또는 `ASK_USER` 반환.
+
+# 출력 (4가지 중 정확히 하나)
+
+## 1. 정상 완료
+
+`TASK_DONE` 직전에 `WORK_SUMMARY:` 블록 필수:
 
     WORK_SUMMARY:
       files_touched: [수정한 파일 경로 목록]
@@ -45,5 +64,39 @@ tools: [Read, Edit, Write, Glob, Grep, Bash]
       assumptions:   [기존 코드/의존성에 대해 가정한 것]
       not_done:      [의도적으로 안 한 것 — 빈 배열이라도 명시]
 
-- Done: `WORK_SUMMARY` 블록 + 마지막 줄 `TASK_DONE`
-- Blocked: `ESCALATE: <이유>`
+마지막 줄에 `TASK_DONE` (단독).
+
+## 2. 진행 불가
+
+`ESCALATE: <이유>`
+
+## 3. Brief 와 디자인 현실 충돌 (설계 점검 A 또는 C ❌)
+
+PM 한테 brief 수정 요청. orchestrator 가 PM 재호출 → 수정된 brief 로 너 재spawn.
+
+    SUGGEST_REVISION:
+      observed:  "디자인 토큰·컴포넌트에서 발견한 사실 (1~3줄)"
+      conflict:  "brief 의 어떤 가정이 깨졌는지"
+      proposal:  "권장 수정안"
+
+## 4. 사용자 의도 확인 필요 (설계 점검 B ❌)
+
+orchestrator 가 사용자에게 informed question 표시 → 응답 받아 너 재spawn.
+
+    ASK_USER:
+      observed:       "디자인 시스템 현황 (어디서 어떻게 정의됨)"
+      ambiguity:      "어떤 해석들이 가능한가"
+      options:
+        - { label: "A", description: "...", scope: "..." }
+        - { label: "B", description: "...", scope: "..." }
+      recommendation: "A"
+
+### ASK_USER 발동 기준 (보수적, 남용 방지)
+
+다음 셋 중 하나 이상에 해당할 때만:
+
+1. 동사가 모호하고 분석 후에도 두 해석 다 합리적
+2. 영향 범위가 brief 의 2배 이상
+3. 되돌리기 어려운 액션 — 토큰 삭제 / 컴포넌트 제거 / public API 변경
+
+위 셋 모두 ❌ → 본인 judgment 으로 진행.

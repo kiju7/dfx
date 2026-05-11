@@ -116,6 +116,7 @@ rm -rf /tmp/agent-forge
   - 약함: `"좀 더 예쁘게"`, `"성능 좋게"`
 - **목표를 한 문장**으로 — 긴 명세는 PM 이 분해해주니까 줄거리만 던지세요.
 - **다중 도메인**은 한 호출로 OK — triage 가 route=pm 으로 보내고 PM 이 알아서 쪼갭니다.
+- **PM ↔ Dev 설계 대화 + ASK_USER** (v0.7.0+): dev 가 Discovery 후 brief 가 코드 현실과 맞지 않다고 판단하면 `SUGGEST_REVISION` 으로 PM 한테 돌아가 brief 를 수정합니다. 의도가 진짜 모호하면 (`비활성화 vs 삭제` 같은) `ASK_USER` 로 사용자에게 informed question 을 던집니다. 답해주면 그 결정으로 진행.
 
 ### 출력 형식 (parent chat)
 
