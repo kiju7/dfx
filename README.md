@@ -93,9 +93,9 @@ $ claude
 ```bash
 git clone https://github.com/kiju7/agent-forge.git /tmp/agent-forge
 mkdir -p ~/.claude/commands ~/.claude/agents ~/.claude/skills
-cp /tmp/agent-forge/.claude/commands/forge.md ~/.claude/commands/
-cp -r /tmp/agent-forge/.claude/agents/*       ~/.claude/agents/
-cp -r /tmp/agent-forge/.claude/skills/forge   ~/.claude/skills/
+cp    /tmp/agent-forge/commands/forge.md ~/.claude/commands/
+cp -r /tmp/agent-forge/agents/*          ~/.claude/agents/
+cp -r /tmp/agent-forge/skills/forge      ~/.claude/skills/
 rm -rf /tmp/agent-forge
 ```
 
@@ -153,8 +153,8 @@ subagent 내부 로그는 **parent chat 에 새지 않습니다** — Task subag
 기본 티어: triage = haiku (분류), QC×4 = sonnet (바운디드 diff 리뷰), pm + 7 devs = opus (실제 추론·편집).
 
 비용 제어:
-- 비싸다 싶으면 `.claude/agents/<dev>.md` 의 `model: opus` → `sonnet` 로 다운그레이드 (품질 vs 비용 트레이드).
-- QC 4개를 줄이고 싶으면 `.claude/skills/forge/SKILL.md` 의 "Step 4" 에서 일부 제외.
+- 비싸다 싶으면 `agents/<dev>.md` 의 `model: opus` → `sonnet` 로 다운그레이드 (품질 vs 비용 트레이드).
+- QC 4개를 줄이고 싶으면 `skills/forge/SKILL.md` 의 "Step 4" 에서 일부 제외.
 
 ---
 
@@ -165,24 +165,27 @@ agent-forge/
 ├── .claude-plugin/
 │   ├── plugin.json              # 플러그인 매니페스트
 │   └── marketplace.json         # 마켓플레이스 엔트리 (/plugin install 가능하게)
-└── .claude/
-    ├── commands/forge.md        # /forge 슬래시 커맨드
-    ├── skills/forge/SKILL.md    # 파이프라인 오케스트레이션 로직
-    └── agents/                  # 13개 네이티브 subagent
-        ├── triage.md
-        ├── pm.md
-        ├── frontend.md
-        ├── backend.md
-        ├── database.md
-        ├── devops.md
-        ├── daemon.md
-        ├── ux.md
-        ├── ai.md
-        ├── qc-edgecase.md
-        ├── qc-security.md
-        ├── qc-perf.md
-        └── qc-ux.md
+├── commands/
+│   └── forge.md                 # /forge 슬래시 커맨드
+├── skills/
+│   └── forge/SKILL.md           # 파이프라인 오케스트레이션 로직
+└── agents/                      # 13개 네이티브 subagent
+    ├── triage.md
+    ├── pm.md
+    ├── frontend.md
+    ├── backend.md
+    ├── database.md
+    ├── devops.md
+    ├── daemon.md
+    ├── ux.md
+    ├── ai.md
+    ├── qc-edgecase.md
+    ├── qc-security.md
+    ├── qc-perf.md
+    └── qc-ux.md
 ```
+
+⚠ Claude Code 플러그인은 **플러그인 루트** 의 `commands/`, `agents/`, `skills/` 를 자동 발견. `.claude/` 안에 넣으면 안 잡힘.
 
 ---
 
@@ -191,7 +194,7 @@ agent-forge/
 ### 새 전문 에이전트 추가
 
 ```bash
-# .claude/agents/security-auditor.md
+# agents/security-auditor.md
 ---
 name: security-auditor
 description: 보안 감사 전문 — 코드 변경 외에 의존성 / .env / 비밀 노출까지 본다
@@ -201,23 +204,23 @@ tools: [Read, Grep, Glob, Bash]
 당신의 역할은...
 ```
 
-추가 후 `.claude/skills/forge/SKILL.md` 의 라우팅 표에 카테고리 매핑만 추가하면 끝.
+추가 후 `skills/forge/SKILL.md` 의 라우팅 표에 카테고리 매핑만 추가하면 끝.
 
 ### QC 빼기 / 추가
 
-`.claude/skills/forge/SKILL.md` 의 **Step 4** 에서 4개 중 일부를 제외하거나 새 QC 를 추가하세요.
+`skills/forge/SKILL.md` 의 **Step 4** 에서 4개 중 일부를 제외하거나 새 QC 를 추가하세요.
 
 ### 모델 다운/업그레이드
 
-각 `.claude/agents/<name>.md` 의 `model:` 필드. 옵션: `haiku | sonnet | opus`.
+각 `agents/<name>.md` 의 `model:` 필드. 옵션: `haiku | sonnet | opus`.
 
 ---
 
 ## 동작 원리 (간단히)
 
-1. `/forge` 슬래시 커맨드 = `.claude/commands/forge.md` → 본문에 `forge` skill 호출을 지시
-2. Claude Code 가 `.claude/skills/forge/SKILL.md` 를 시스템 프롬프트에 합쳐서 본 어시스턴트가 오케스트레이터 역할을 함
-3. 본 어시스턴트가 `Task(subagent_type: "triage", ...)` 같은 호출로 13개의 subagent 정의 (`.claude/agents/*.md`) 를 가져다 격리된 컨텍스트에서 실행
+1. `/forge` 슬래시 커맨드 = `commands/forge.md` → 본문에 `forge` skill 호출을 지시
+2. Claude Code 가 `skills/forge/SKILL.md` 를 시스템 프롬프트에 합쳐서 본 어시스턴트가 오케스트레이터 역할을 함
+3. 본 어시스턴트가 `Task(subagent_type: "triage", ...)` 같은 호출로 13개의 subagent 정의 (`agents/*.md`) 를 가져다 격리된 컨텍스트에서 실행
 4. 같은 메시지에 여러 Task 호출 = 병렬 / 다음 메시지의 Task 호출 = 순차
 
 Claude Code 의 [Task subagent 기능](https://docs.claude.com/en/docs/claude-code/sub-agents) 를 그대로 쓰는 거라서 추가 인프라가 0 입니다.

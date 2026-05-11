@@ -8,15 +8,16 @@ Multi-agent engineering pipeline that runs natively inside Claude Code via `Task
 .claude-plugin/
   plugin.json                  # Plugin manifest
   marketplace.json             # Marketplace entry — enables /plugin install
-.claude/
-  commands/forge.md            # /forge entry point
-  skills/forge/SKILL.md        # Pipeline orchestration logic (read this for the flow)
-  agents/                      # 13 native subagents (triage, pm, 7 devs, 4 QC)
+commands/forge.md              # /forge entry point
+skills/forge/SKILL.md          # Pipeline orchestration logic (read this for the flow)
+agents/                        # 13 native subagents (triage, pm, 7 devs, 4 QC)
 ```
+
+Claude Code 플러그인은 **플러그인 루트** 의 `commands/`, `agents/`, `skills/` 를 자동 스캔. `.claude/` 안에 넣으면 안 잡힘.
 
 ## How a /forge invocation flows
 
-1. User: `/forge "<request>"` → invokes `.claude/commands/forge.md`
+1. User: `/forge "<request>"` → invokes `commands/forge.md`
 2. That command instructs the assistant to invoke the `forge` skill
 3. The skill's body becomes the orchestration instructions for THIS conversation
 4. The assistant spawns subagents via `Task(subagent_type: "<name>", prompt: "...")` calls
@@ -33,5 +34,5 @@ Multi-agent engineering pipeline that runs natively inside Claude Code via `Task
 
 ## Editing rules
 
-- New role or QC reviewer → add an `.md` file under `.claude/agents/` with frontmatter `name | description | model | tools`. Reference it from `.claude/skills/forge/SKILL.md` routing.
-- Pipeline shape changes → edit `.claude/skills/forge/SKILL.md` only.
+- New role or QC reviewer → add an `.md` file under `agents/` with frontmatter `name | description | model | tools`. Reference it from `skills/forge/SKILL.md` routing.
+- Pipeline shape changes → edit `skills/forge/SKILL.md` only.
