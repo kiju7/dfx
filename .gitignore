@@ -1,0 +1,20 @@
+node_modules
+dist
+.next
+*.log
+.DS_Store
+
+# Runtime data — orchestrator writes here
+data/app.db
+data/app.db-wal
+data/app.db-shm
+data/events.ndjson
+data/worktrees/
+
+# Generated artifacts from agent runs
+artifacts/
+
+# Local env / secrets
+.env
+.env.local
+.env.*.local

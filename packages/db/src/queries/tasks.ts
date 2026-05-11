@@ -1,0 +1,112 @@
+import type { TaskStatus } from '@agent-forge/shared';
+import { nowMs, ulid } from '@agent-forge/shared';
+import { getReader, getWriter } from '../client.js';
+
+export interface TaskRow {
+  id: string;
+  request_id: string;
+  parent_task_id: string | null;
+  agent_id: string | null;
+  title: string;
+  description_md: string;
+  status: TaskStatus;
+  worktree_path: string | null;
+  branch_name: string | null;
+  depth: number;
+  started_at: number | null;
+  ended_at: number | null;
+  created_at: number;
+  updated_at: number;
+}
+
+export function insert(input: {
+  request_id: string;
+  parent_task_id?: string | null;
+  agent_id?: string | null;
+  title: string;
+  description_md?: string;
+  worktree_path?: string | null;
+  branch_name?: string | null;
+  depth?: number;
+}): string {
+  const db = getWriter();
+  const id = ulid();
+  const now = nowMs();
+  db.prepare(
+    `INSERT INTO tasks
+     (id, request_id, parent_task_id, agent_id, title, description_md, status, worktree_path, branch_name, depth, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?)`
+  ).run(
+    id,
+    input.request_id,
+    input.parent_task_id ?? null,
+    input.agent_id ?? null,
+    input.title,
+    input.description_md ?? '',
+    input.worktree_path ?? null,
+    input.branch_name ?? null,
+    input.depth ?? 0,
+    now,
+    now
+  );
+  return id;
+}
+
+export function setStatus(id: string, status: TaskStatus): TaskStatus {
+  const db = getWriter();
+  const row = db.prepare('SELECT status FROM tasks WHERE id = ?').get(id) as
+    | { status: TaskStatus }
+    | undefined;
+  const prev = row?.status ?? 'pending';
+  const now = nowMs();
+  const ended = status === 'done' || status === 'failed' ? now : null;
+  const started = status === 'in_progress' ? now : null;
+  db.prepare(
+    `UPDATE tasks SET status = ?, updated_at = ?,
+       started_at = COALESCE(started_at, ?),
+       ended_at   = COALESCE(?, ended_at)
+     WHERE id = ?`
+  ).run(status, now, started, ended, id);
+  return prev;
+}
+
+export function setWorktree(id: string, path: string, branch: string): void {
+  getWriter()
+    .prepare(`UPDATE tasks SET worktree_path = ?, branch_name = ?, updated_at = ? WHERE id = ?`)
+    .run(path, branch, nowMs(), id);
+}
+
+export function setAgent(id: string, agentId: string): void {
+  getWriter()
+    .prepare(`UPDATE tasks SET agent_id = ?, updated_at = ? WHERE id = ?`)
+    .run(agentId, nowMs(), id);
+}
+
+export function getById(id: string): TaskRow | undefined {
+  return getReader().prepare('SELECT * FROM tasks WHERE id = ?').get(id) as
+    | TaskRow
+    | undefined;
+}
+
+export function byRequest(requestId: string): TaskRow[] {
+  return getReader()
+    .prepare('SELECT * FROM tasks WHERE request_id = ? ORDER BY created_at')
+    .all(requestId) as unknown as TaskRow[];
+}
+
+export function recentRelated(needle: string, limit = 10): TaskRow[] {
+  const like = `%${needle.slice(0, 64).replace(/[%_]/g, '')}%`;
+  return getReader()
+    .prepare(
+      `SELECT * FROM tasks
+       WHERE title LIKE ? OR description_md LIKE ?
+       ORDER BY created_at DESC LIMIT ?`
+    )
+    .all(like, like, limit) as unknown as TaskRow[];
+}
+
+export function listByStatus(status: TaskStatus): TaskRow[] {
+  return getReader()
+    .prepare('SELECT * FROM tasks WHERE status = ? ORDER BY created_at')
+    .all(status) as unknown as TaskRow[];
+}

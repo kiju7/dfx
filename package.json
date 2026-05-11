@@ -1,0 +1,25 @@
+{
+  "name": "agent-forge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Multi-agent engineering system orchestrated by Claude Agent SDK + Claude Code CLI",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "pnpm -r run build",
+    "typecheck": "pnpm -r run typecheck",
+    "lint": "pnpm -r run lint",
+    "test": "pnpm -r run test",
+    "migrate": "pnpm --filter @agent-forge/db run migrate",
+    "orchestrator": "pnpm --filter @agent-forge/orchestrator run dev",
+    "dashboard": "pnpm --filter @agent-forge/dashboard run dev",
+    "smoke": "tsx scripts/smoke.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
