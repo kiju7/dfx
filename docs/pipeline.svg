@@ -119,9 +119,10 @@
   <text x="450" y="686" text-anchor="middle" class="sub">동일 finding 2회 연속 미해결 = STUCK</text>
   <text x="450" y="702" text-anchor="middle" class="sub">모두 STUCK → escalate</text>
 
-  <!-- Ralph loop-back arrow (to QC) -->
-  <path d="M 270,670 Q 75,670 75,556 L 130,556" class="arrow-dash" marker-end="url(#arrow-dashed)"/>
-  <text x="85" y="620" class="branch-lbl">fix → re-QC</text>
+  <!-- Ralph loop-back arrow (dispatch findings to Dev row) -->
+  <path d="M 630,670 Q 870,670 870,425 L 820,425" class="arrow-dash" marker-end="url(#arrow-dashed)"/>
+  <text x="800" y="615" text-anchor="end" class="branch-lbl">findings 를 dev 한테 dispatch</text>
+  <text x="800" y="630" text-anchor="end" class="branch-lbl">(fix → re-QC → Ralph 재평가)</text>
 
   <!-- Arrow to final -->
   <path d="M 450,718 L 450,748" class="arrow" marker-end="url(#arrow)"/>
