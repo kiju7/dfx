@@ -75,95 +75,87 @@ flowchart TD
 
 ---
 
-## 설치 (깨끗한 PC에서)
+## 설치
 
 ### 사전 요구사항
 
 | 항목 | 버전 | 설치 |
 |---|---|---|
-| **Node.js** | ≥ 20 (24 권장) | [nodejs.org](https://nodejs.org) 또는 `brew install node` |
-| **Git** | ≥ 2.30 | macOS는 Xcode CLT, Linux는 `apt install git` |
-| **Claude Code CLI** | 최신 | [docs.claude.com](https://docs.claude.com/claude-code) → 설치 후 `claude` 로 로그인 |
+| **Node.js** | ≥ 20 | [nodejs.org](https://nodejs.org) 또는 `brew install node` |
+| **Git** | ≥ 2.30 | macOS Xcode CLT / Linux `apt install git` |
+| **Claude Code CLI** | 최신 | [docs.claude.com](https://docs.claude.com/claude-code) → `claude` 한 번 실행해 로그인 |
 
-추가로:
-- **GitHub 계정** (private 레포 클론용)
-- **macOS / Linux** (Windows는 WSL2 권장)
+(macOS / Linux 권장. Windows는 WSL2)
 
-### 1. Node + pnpm 활성화
+### 방법 ① — 한 줄 설치 (권장)
 
 ```bash
-node --version              # v20 이상 확인
-corepack enable pnpm        # Node에 내장된 corepack으로 pnpm 활성화
-pnpm --version              # 9.x.x 출력되면 OK
+curl -fsSL https://raw.githubusercontent.com/kiju7/agent-forge/main/install.sh | bash
 ```
 
-### 2. Claude Code 인증
+이 한 줄이 다음을 자동 처리합니다:
+- 사전 요구사항(Node·git·pnpm·claude) 점검
+- 레포 클론 (`./agent-forge`)
+- `pnpm install` + `pnpm migrate`
+- 초기 커밋 (worktree 분기용)
+- **`/forge` 슬래시 커맨드를 `~/.claude/commands/` 에 자동 설치** (경로 치환까지)
 
+설치 위치를 바꾸려면:
 ```bash
-claude --version            # 설치 확인
-claude                      # 한 번 실행해 OAuth 로그인
-                            # 또는 export ANTHROPIC_API_KEY=sk-...
+curl -fsSL https://raw.githubusercontent.com/kiju7/agent-forge/main/install.sh | bash -s -- ~/code/agent-forge
 ```
 
-### 3. 레포 클론
+설치 후:
+```bash
+claude        # 어느 디렉토리에서든
+/forge        # 첫 실행 시 오케스트레이터·대시보드 자동 기동
+```
+
+### 방법 ② — 수동 단계 (스크립트가 안 통하는 환경)
+
+<details>
+<summary>펼치기</summary>
 
 ```bash
+# 1) pnpm 활성화
+corepack enable pnpm
+
+# 2) Claude 인증 (한 번)
+claude
+
+# 3) 클론 + 설치
 git clone https://github.com/kiju7/agent-forge.git
 cd agent-forge
-```
+pnpm install
+pnpm migrate
 
-> 위 레포는 private 입니다. 권한이 없으면 GitHub에서 본인 계정으로 fork 또는 새 레포로 push 받으세요.
-
-### 4. 의존성 설치 + DB 초기화
-
-```bash
-pnpm install                # 약 30초
-pnpm migrate                # SQLite 스키마 생성 (data/app.db)
-```
-
-성공 시 출력 예:
-```
-{ "applied": ["0001_init", ..., "0006_more_roles"], "skipped": [] }
-```
-
-### 5. (필요 시) 초기 커밋
-
-새 fork 라면 이미 커밋 있으니 skip. 처음부터 시작했다면:
-```bash
+# 4) 초기 커밋이 없으면
 git add -A && git commit -m "initial"
-```
 
-> `git worktree` 가 작동하려면 최소 1개의 커밋이 필요해요.
-
-### 6. `/forge` 슬래시 커맨드 전역 설치
-
-이 단계가 핵심입니다 — Claude Code 안에서 `/forge` 한 줄로 모든 걸 처리하기 위해서:
-
-```bash
+# 5) /forge 슬래시 커맨드 전역 등록 (경로 치환 포함)
 mkdir -p ~/.claude/commands
-cp .claude/commands/forge.md ~/.claude/commands/forge.md
+sed "s|/Users/jd-kimkiju/Projects/agent-forge|$(pwd)|g" \
+  .claude/commands/forge.md > ~/.claude/commands/forge.md
 ```
 
-이러면 **어느 디렉토리에서 claude 를 띄우든** `/forge` 가 인식됩니다.
+(Linux는 위 `sed` 그대로, macOS는 위 그대로 — `sed -i` 안 쓰니 OS 불문)
 
-> 단, `forge.md` 내부에 `/Users/jd-kimkiju/Projects/agent-forge` 경로가 하드코딩돼있어요. 본인 경로로 바꿔주세요:
-> ```bash
-> sed -i '' "s|/Users/jd-kimkiju/Projects/agent-forge|$(pwd)|g" ~/.claude/commands/forge.md
-> ```
-> (Linux는 `sed -i` 만)
+</details>
 
-### 7. 동작 확인
+### 동작 확인
 
 ```bash
 claude
-# Claude Code 안에서:
+# 안에서:
 /forge
 ```
 
 기대 동작:
-- 오케스트레이터 + 대시보드를 백그라운드 자동 기동
-- 약 5초 후 "agent-forge ready ..." 메시지
-- 브라우저로 `http://localhost:3000` 열면 빈 칸반 보드 보임
+1. 약 5초 안에 오케스트레이터+대시보드 자동 기동
+2. "agent-forge ready · auto-tier · http://localhost:3000" 메시지
+3. 브라우저로 <http://localhost:3000> 열면 빈 칸반 보드 보임
+
+> **참고: npm 글로벌 설치는 아직 지원하지 않음.** 향후 `npm install -g @kiju7/agent-forge` 옵션 추가 예정. 현재는 한 줄 설치 스크립트가 사실상 동일 UX 입니다.
 
 ---
 
