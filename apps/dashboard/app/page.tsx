@@ -28,7 +28,7 @@ export default function Page() {
           <div className="column" key={status}>
             <h3>{status} ({byStatus[status].length})</h3>
             {byStatus[status].map((t) => (
-              <Link href={`/tasks/${t.id}`} key={t.id} style={{ color: 'inherit' }}>
+              <Link href={`/tasks/${t.id}`} key={t.id} className="card-link">
                 <div className="card">
                   <div className="title">{t.title}</div>
                   <div className="meta">
