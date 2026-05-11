@@ -2,6 +2,7 @@
 html, body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; background: #0d1117; color: #e6edf3; }
 a { color: #58a6ff; text-decoration: none; }
 a:hover { text-decoration: underline; }
+a:focus-visible { outline: 2px solid #58a6ff; outline-offset: 2px; border-radius: 2px; }
 .topbar { display:flex; align-items:center; gap:24px; padding:14px 24px; background:#161b22; border-bottom:1px solid #30363d; }
 .topbar .brand { font-weight:700; color:#e6edf3; }
 .topbar nav { display:flex; gap:18px; }
