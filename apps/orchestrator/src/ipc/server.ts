@@ -9,6 +9,8 @@ import { handleRequest } from '../dispatcher.js';
 const PORT = Number(process.env.ORCHESTRATOR_PORT ?? 4317);
 const startedAt = Date.now();
 
+export const inFlightTasks = new Set<string>();
+
 const CreateRequest = z.object({
   type: z.enum(REQUEST_TYPES),
   title: z.string().min(1).max(200),
@@ -30,6 +32,7 @@ function send(res: ServerResponse, code: number, body: unknown): void {
 }
 
 async function processRequest(requestId: string, title: string, body: string, type: string) {
+  inFlightTasks.add(requestId);
   try {
     const triage = await runTriage({ requestId, type, title, body });
     queries.messages.append({
@@ -48,6 +51,8 @@ async function processRequest(requestId: string, title: string, body: string, ty
       sender_id: 'orchestrator',
       body_md: `Error: ${(e as Error).message}`,
     });
+  } finally {
+    inFlightTasks.delete(requestId);
   }
 }
 

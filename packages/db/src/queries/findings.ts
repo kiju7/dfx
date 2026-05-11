@@ -66,3 +66,27 @@ export function getById(id: string): FindingRow | undefined {
     | FindingRow
     | undefined;
 }
+
+export interface DailyCount {
+  qc_agent_id: string;
+  bucket_day: number;
+  findings: number;
+  points: number;
+}
+
+export function dailyForLastDays(days: number): DailyCount[] {
+  const sinceMs = Date.now() - days * 86_400_000;
+  return getReader()
+    .prepare(
+      `SELECT
+         qc_agent_id,
+         CAST(created_at / 86400000 AS INTEGER) * 86400000 AS bucket_day,
+         COUNT(*)                        AS findings,
+         COALESCE(SUM(reward_points), 0) AS points
+       FROM qc_findings
+       WHERE created_at >= ?
+       GROUP BY qc_agent_id, bucket_day
+       ORDER BY qc_agent_id, bucket_day`
+    )
+    .all(sinceMs) as unknown as DailyCount[];
+}

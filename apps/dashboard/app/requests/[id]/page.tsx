@@ -9,6 +9,7 @@ export default async function RequestDetail({ params }: { params: Promise<{ id: 
   const req = queries.requests.getById(id);
   if (!req) notFound();
   const tasks = queries.tasks.byRequest(id);
+  const cost = queries.costs.summaryForRequest(id);
 
   return (
     <>
@@ -21,6 +22,12 @@ export default async function RequestDetail({ params }: { params: Promise<{ id: 
       {req.body_md && (
         <pre style={{ background: '#161b22', padding: 12, borderRadius: 6 }}>{req.body_md}</pre>
       )}
+      <p style={{ color: '#8b949e', fontSize: 13 }}>
+        cost ${cost.cost_usd.toFixed(4)} · {cost.invocations} calls ·
+        in {cost.input_tokens.toLocaleString()} / out {cost.output_tokens.toLocaleString()} tok ·
+        cache {cost.cache_read_tokens.toLocaleString()} tok · turns {cost.turns}
+      </p>
+
       <h2>Tasks ({tasks.length})</h2>
       <table className="table">
         <thead>

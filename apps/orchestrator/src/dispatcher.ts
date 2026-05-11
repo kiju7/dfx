@@ -86,6 +86,20 @@ async function spawnDev(input: {
     prompt: input.brief,
   });
 
+  queries.costs.record({
+    task_id,
+    request_id: input.requestId,
+    agent_id: input.spec.id,
+    purpose: 'dev',
+    cost_usd: run.usage.costUsd,
+    input_tokens: run.usage.inputTokens,
+    output_tokens: run.usage.outputTokens,
+    cache_read_tokens: run.usage.cacheReadTokens,
+    cache_creation_tokens: run.usage.cacheCreationTokens,
+    turns: run.usage.turns,
+    duration_ms: run.durationMs,
+  });
+
   const ok = !run.text.includes('ESCALATE:') && run.stopReason !== 'error';
   queries.messages.append({
     task_id,
@@ -113,6 +127,19 @@ async function runQc(args: {
   ].join('\n');
 
   const result = await runAgent({ spec: args.qc, cwd: qcCwd, prompt });
+
+  queries.costs.record({
+    task_id: args.target.task_id,
+    agent_id: args.qc.id,
+    purpose: 'qc',
+    cost_usd: result.usage.costUsd,
+    input_tokens: result.usage.inputTokens,
+    output_tokens: result.usage.outputTokens,
+    cache_read_tokens: result.usage.cacheReadTokens,
+    cache_creation_tokens: result.usage.cacheCreationTokens,
+    turns: result.usage.turns,
+    duration_ms: result.durationMs,
+  });
 
   let report: ReturnType<typeof QcReportSchema.parse>;
   try {

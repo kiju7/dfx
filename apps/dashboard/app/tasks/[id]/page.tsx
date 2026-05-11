@@ -12,6 +12,8 @@ export default async function TaskDetail({ params }: { params: Promise<{ id: str
   const messages = queries.messages.byTask(id);
   const findings = queries.findings.byTask(id);
   const ralph = queries.ralph.byTask(id);
+  const costSummary = queries.costs.summaryForTask(id);
+  const costDetail = queries.costs.byTask(id);
 
   return (
     <>
@@ -25,6 +27,35 @@ export default async function TaskDetail({ params }: { params: Promise<{ id: str
         <p style={{ fontSize: 12, color: '#8b949e' }}>
           worktree: <code>{task.worktree_path}</code> · branch: <code>{task.branch_name}</code>
         </p>
+      )}
+
+      <h2>Cost</h2>
+      <p style={{ color: '#8b949e' }}>
+        총 <b>${costSummary.cost_usd.toFixed(4)}</b> · {costSummary.invocations} calls ·
+        in {costSummary.input_tokens.toLocaleString()} tok / out {costSummary.output_tokens.toLocaleString()} tok ·
+        cache read {costSummary.cache_read_tokens.toLocaleString()} tok ·
+        turns {costSummary.turns}
+      </p>
+      {costDetail.length > 0 && (
+        <table className="table">
+          <thead>
+            <tr><th>when</th><th>agent</th><th>purpose</th><th>cost</th><th>in/out</th><th>cache</th><th>turns</th><th>ms</th></tr>
+          </thead>
+          <tbody>
+            {costDetail.map((c) => (
+              <tr key={c.id}>
+                <td>{new Date(c.created_at).toLocaleTimeString()}</td>
+                <td>{c.agent_id}</td>
+                <td>{c.purpose}</td>
+                <td>${c.cost_usd.toFixed(4)}</td>
+                <td>{c.input_tokens.toLocaleString()} / {c.output_tokens.toLocaleString()}</td>
+                <td>{c.cache_read_tokens.toLocaleString()}</td>
+                <td>{c.turns}</td>
+                <td>{c.duration_ms.toLocaleString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
 
       <h2>QC findings ({findings.length})</h2>

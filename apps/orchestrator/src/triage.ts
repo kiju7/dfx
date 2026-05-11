@@ -1,6 +1,6 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { runAgent, extractJsonObject } from '@agent-forge/agents';
+import { runAgentForJson } from '@agent-forge/agents';
 import { TriageOutputSchema, type TriageOutput, findWorkspaceRoot } from '@agent-forge/shared';
 import { queries } from '@agent-forge/db';
 import * as registry from './registry.js';
@@ -55,7 +55,28 @@ export async function runTriage(input: TriageInput): Promise<TriageOutput> {
     'Respond with the JSON object as specified.',
   ].join('\n');
 
-  const result = await runAgent({ spec, prompt, cwd: REPO_ROOT });
-  const raw = extractJsonObject(result.text);
-  return TriageOutputSchema.parse(raw);
+  const out = await runAgentForJson({
+    opts: { spec, prompt, cwd: REPO_ROOT },
+    parse: (raw) => TriageOutputSchema.parse(raw),
+  });
+  queries.costs.record({
+    request_id: input.requestId,
+    agent_id: spec.id,
+    purpose: 'triage',
+    cost_usd: out.usage.costUsd,
+    input_tokens: out.usage.inputTokens,
+    output_tokens: out.usage.outputTokens,
+    cache_read_tokens: out.usage.cacheReadTokens,
+    cache_creation_tokens: out.usage.cacheCreationTokens,
+    turns: out.usage.turns,
+    duration_ms: out.durationMs,
+  });
+  queries.decisions.record({
+    request_id: input.requestId,
+    kind: 'triage',
+    scope: out.value.route === 'pm' ? 'pm' : out.value.targets.join(','),
+    title: `Triage: ${out.value.route} → [${out.value.targets.join(', ')}] (conf ${out.value.confidence.toFixed(2)})`,
+    rationale_md: out.value.reasoning,
+  });
+  return out.value;
 }

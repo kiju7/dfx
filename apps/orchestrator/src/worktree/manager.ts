@@ -57,19 +57,62 @@ export interface MergeOptions {
   target?: string;
 }
 
-export function squashMerge(opts: MergeOptions): { sha: string } {
+function safeStashMain(): { stashed: boolean; ref: string | null } {
+  const status = git(['status', '--porcelain']);
+  if (status.length === 0) return { stashed: false, ref: null };
+  const msg = `agent-forge:auto-stash:${Date.now()}`;
+  git(['stash', 'push', '--include-untracked', '-m', msg]);
+  const ref = git(['stash', 'list', '--format=%gd %s'])
+    .split('\n')
+    .find((l) => l.includes(msg));
+  return { stashed: true, ref: ref ? ref.split(' ')[0]! : null };
+}
+
+function safeStashPop(ref: string | null): { ok: boolean; conflict: boolean } {
+  if (!ref) return { ok: true, conflict: false };
+  try {
+    git(['stash', 'pop', ref]);
+    return { ok: true, conflict: false };
+  } catch (e) {
+    const msg = (e as Error).message;
+    const conflict = /conflict/i.test(msg);
+    return { ok: false, conflict };
+  }
+}
+
+export function squashMerge(opts: MergeOptions): { sha: string; stashWarning?: string } {
   const target = opts.target ?? 'main';
-  // Ensure branch is committed first (squash any pending changes inside the worktree)
-  const status = git(['status', '--porcelain'], opts.wt.path);
-  if (status.length > 0) {
+  // 1) commit any pending edits inside the worktree itself
+  const wtStatus = git(['status', '--porcelain'], opts.wt.path);
+  if (wtStatus.length > 0) {
     git(['add', '-A'], opts.wt.path);
     git(['commit', '-m', `wip(${opts.wt.agentId}): worktree snapshot`], opts.wt.path);
   }
-  git(['checkout', target]);
-  git(['merge', '--squash', opts.wt.branch]);
-  git(['commit', '-m', opts.commitMessage]);
-  const sha = git(['rev-parse', 'HEAD']);
-  return { sha };
+
+  // 2) stash anything dirty on the main checkout to allow the merge
+  const stash = safeStashMain();
+
+  let sha: string;
+  try {
+    git(['checkout', target]);
+    git(['merge', '--squash', opts.wt.branch]);
+    git(['commit', '-m', opts.commitMessage]);
+    sha = git(['rev-parse', 'HEAD']);
+  } catch (e) {
+    if (stash.stashed) safeStashPop(stash.ref); // best-effort restore
+    throw e;
+  }
+
+  // 3) restore the user's pending changes
+  let stashWarning: string | undefined;
+  if (stash.stashed) {
+    const pop = safeStashPop(stash.ref);
+    if (!pop.ok) {
+      stashWarning = `auto-stash kept at ${stash.ref ?? '<unknown>'}${pop.conflict ? ' due to conflict' : ''}; run \`git stash list\` to recover.`;
+    }
+  }
+
+  return { sha, stashWarning };
 }
 
 export function park(wt: Worktree): void {
