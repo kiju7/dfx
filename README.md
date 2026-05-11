@@ -22,10 +22,12 @@ QC 수렴 후 **Tech Lead 의 Acceptance Review** 가 한 번 더 돕니다 (v0.
 
 | 사용자 입력 | 자동 처리 |
 |---|---|
-| `/forge "칸반 카드 hover 시 배경 살짝 밝게"` | triage → frontend → QC×4 → (clean) → 요약 |
-| `/forge "사용자 프로필 페이지 만들어줘"` | triage → lead → (database + backend + frontend 병렬) → QC×4 → fix → 요약 |
-| `/forge "GitHub Actions CI 추가, push 마다 typecheck+build"` | triage → devops → QC×4 → 요약 |
-| `/forge "tasks 테이블에 priority 컬럼 + 인덱스"` | triage → database → QC×4 → 요약 |
+| `/forge "칸반 카드 hover 시 배경 살짝 밝게"` | triage → frontend → QC×4 → (clean) → Review APPROVE → 요약 + 사용자 보고서 |
+| `/forge "사용자 프로필 페이지 만들어줘"` | triage → Tech Lead → (database + backend + frontend 병렬) → QC×4 → Ralph fix → Review → 요약 |
+| `/forge "GitHub Actions CI 추가, push 마다 typecheck+build"` | triage → devops → QC×4 → Review → 요약 |
+| `/forge "tasks 테이블에 priority 컬럼 + 인덱스"` | triage → database → QC×4 → Review → 요약 |
+| `/forge "결제 화면에서 가끔 카드 번호 마지막 자리 잘림 — 자세한 조건은 모름"` | triage → Tech Lead → **🔬 Investigation** (dev/QC 재현 시도) → 가설 명확화 → frontend fix → QC → Review → 요약 |
+| `/forge "shm 비활성화하고 remote triton 으로"` | triage → Tech Lead → 의도 모호 (toggle vs delete) → **🤔 사용자에게 informed question** → 응답에 따라 dev → QC → Review → 요약 |
 
 ---
 
@@ -92,24 +94,72 @@ rm -rf /tmp/agent-forge
 - **목표를 한 문장**으로 — 긴 명세는 Tech Lead 가 분해해주니까 줄거리만 던지세요.
 - **다중 도메인**은 한 호출로 OK — triage 가 route=lead 로 보내고 Tech Lead 가 코드 보고 쪼갭니다.
 - **Tech Lead ↔ Dev 설계 대화** (v0.8+): **Tech Lead** 가 코드를 적극적으로 read 한 후 분해 — 초기 분해부터 코드 reality 반영. 의도가 진짜 모호하면 (`비활성화 vs 삭제` 같은) **Tech Lead 가 초기 분해 시점에 직접 사용자에게 informed question** 을 띄움. dev 가 Discovery 중 brief 가 코드와 안 맞다고 판단하면 `SUGGEST_REVISION` 으로 Tech Lead 한테 돌아가 brief 수정. Dev 가 직접 사용자에게 묻지 않음 — 항상 Tech Lead 경유.
+- **Acceptance Review** (v0.10+): QC 통과 후 Tech Lead 가 한 번 더 최종 검토 — 원본 요청 대비 의도 충족 / 전체 일관성 / PR-review 수준 품질. APPROVE 까지 Ralph 수렴 패턴으로 반복.
+- **모호한 bug 도 OK** (v0.11+): "가끔 X 가 안 됨" 처럼 재현 조건 모르겠어도 던지세요. Tech Lead 가 코드 read 만으로 가설 못 세우면 **dev/QC 가 자동 재현 시도** (Investigation Phase). 재현 결과 기반으로 plan 세워서 진행. 그래도 막히면 사용자한테 정보 요청 escalate.
 
 ### 출력 형식 (parent chat)
 
+#### 단순 케이스 (clean 직진)
+
 ```
+📁 Audit log — _workspace/20260512-153022-a3f4/
 🎯 Triage — fix · route=direct · targets=frontend
 📋 Plan — 1 subtasks
   · [frontend] globals.css hover 변경
 ✅ Layer 0 — 1/1 done · escalations: none
 🔍 QC — total 0 findings
+🔎 Review — APPROVE · intent_match=yes
 🏁 agent-forge done
-
 요청: 칸반 카드 hover 시 배경 살짝 밝게
 서브태스크: 1/1
-QC 통과: yes  잔여 findings: 0
+Ralph QC: 0 iters · clean=yes · stuck=0
+Acceptance Review: 1 round · verdict=APPROVE
 변경 파일: 1
+📁 Audit log: _workspace/20260512-153022-a3f4/
 
-다음 단계 권고:
-  · 변경 확인 후 commit
+---
+
+📄 사용자 보고서 (`_workspace/.../97-user-report.md`)
+
+# 작업 요약
+칸반 카드에 마우스 hover 시 배경이 살짝 밝아지도록 추가.
+...
+```
+
+#### 모호한 bug 케이스 (Investigation 활성)
+
+```
+📁 Audit log — _workspace/20260512-160055-b21c/
+🎯 Triage — bug · route=lead · targets=[lead]
+🔬 Investigation — 재현 시도 (가설: input maxLength 또는 응답 truncation)
+🔬 Investigation round 1 — 3 repro tasks 병렬
+🔬 Investigation result — 재현 1 / 안됨 2
+📋 Plan — 1 subtasks  (qc-edgecase 가 19자리 BIN 에서 재현 성공)
+  · [frontend] AMEX 19자리 카드 입력 width 대응
+✅ Layer 0 — 1/1 done
+🔍 QC — total 0 findings
+🔎 Review — APPROVE · intent_match=yes
+🏁 agent-forge done
+...
+```
+
+#### 의도 모호 케이스 (사용자 확인 필요)
+
+```
+🎯 Triage — feature · route=lead
+📋 Tech Lead 분석 중... (코드 read)
+
+🤔 확인 필요 [Tech Lead 초기 분해]
+코드 분석: EnableShm bool 로 토글, 2 군데서 분기...
+  A. EnableShm=false 로 토글 (코드 유지)
+  B. SHM 관련 코드 자체 제거
+추천: A. 어떻게 갈까?
+
+[사용자: A]
+
+📋 Plan — 1 subtasks
+  · [daemon] EnableShm 기본값 false 로 변경
+...
 ```
 
 subagent 내부 로그는 **parent chat 에 새지 않습니다** — Task subagent 격리 덕분.
@@ -126,6 +176,10 @@ _workspace/20260511-153022-a3f4/
   03-impl/layer-0/
     frontend-1.md        # dev 의 brief + WORK_SUMMARY + 결과
     backend-1.md
+  02b-investigation/     # (조건부, v0.11+) 모호 bug repro 활성 시
+    round-1/
+      backend-1.md       # REPRO_REPORT
+      qc-edgecase-1.md
   04-qc/iter-0.json      # QC findings (초기)
   04-qc/iter-1.json      # QC findings (Ralph iter 1 후)
   05-ralph/iter-1.md     # Ralph 사이클 1 의 dispatch + 결과
@@ -149,9 +203,10 @@ _workspace/20260511-153022-a3f4/
 
 | 작업 규모 | 모델 분포 | 1 회 비용 추정 |
 |---|---|---|
-| 단순 fix (한 파일) | Triage(Haiku) + dev(Opus) + QC×4(Sonnet) | $0.40–1.50 |
-| 일반 기능 / 버그 | + Tech Lead(Opus, 코드 read 포함) + Ralph 1~2 iter | $2–8 |
-| 다중 도메인 신규 기능 | dev 여러 개 병렬(Opus) + QC×4 + Ralph 2~5 iter | $8–30 |
+| 단순 fix (한 파일) | Triage(Haiku) + dev(Opus) + QC×4(Sonnet) + Review(Opus) | $0.50–2.00 |
+| 일반 기능 / 버그 | + Tech Lead(Opus, 코드 read 포함) + Ralph 1~2 iter | $2–10 |
+| 다중 도메인 신규 기능 | dev 여러 개 병렬(Opus) + QC×4 + Ralph 2~5 iter + Review | $8–35 |
+| **모호한 bug (Investigation 활성)** | + Investigation 1~2 라운드 (dev/QC 재현 시도) | 위 + $1–5 |
 
 기본 티어: triage = haiku (분류), QC×4 = sonnet (바운디드 diff 리뷰), Tech Lead + 7 devs = opus (실제 추론·편집).
 
