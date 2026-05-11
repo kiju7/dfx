@@ -7,6 +7,7 @@ import { runTriage } from '../triage.js';
 import { handleRequest } from '../dispatcher.js';
 
 const PORT = Number(process.env.ORCHESTRATOR_PORT ?? 4317);
+const startedAt = Date.now();
 
 const CreateRequest = z.object({
   type: z.enum(REQUEST_TYPES),
@@ -54,6 +55,11 @@ export function startIpcServer(): void {
   const server = createServer(async (req, res) => {
     if (req.method === 'GET' && req.url === '/health') {
       send(res, 200, { ok: true });
+      return;
+    }
+
+    if (req.method === 'GET' && req.url === '/version') {
+      send(res, 200, { version: '0.1.0', startedAt });
       return;
     }
 

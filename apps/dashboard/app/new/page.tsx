@@ -26,17 +26,14 @@ export default function NewRequest() {
     <>
       <h1>New request</h1>
       <form action={submit} className="form">
-        <label>Type
-          <select name="type" defaultValue="bug">
-            {REQUEST_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
-        </label>
-        <label>Title
-          <input name="title" required maxLength={200} />
-        </label>
-        <label>Body (markdown)
-          <textarea name="body" placeholder="repro steps, expected vs actual, etc." />
-        </label>
+        <label htmlFor="type">Type</label>
+        <select id="type" name="type" defaultValue="bug">
+          {REQUEST_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <label htmlFor="title">Title</label>
+        <input id="title" name="title" required maxLength={200} />
+        <label htmlFor="body">Body (markdown)</label>
+        <textarea id="body" name="body" placeholder="repro steps, expected vs actual, etc." />
         <button type="submit">Submit</button>
       </form>
     </>
