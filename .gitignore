@@ -1,19 +1,19 @@
-node_modules
-dist
-.next
-*.log
-*.tsbuildinfo
 .DS_Store
+*.log
 
-# Runtime data — orchestrator writes here
-data/app.db
-data/app.db-wal
-data/app.db-shm
-data/events.ndjson
-data/worktrees/
+# Node deps — anywhere in the tree (including nested workspace packages)
+node_modules/
 
-# Generated artifacts from agent runs
-artifacts/
+# Legacy external-system runtime
+legacy/data/app.db
+legacy/data/app.db-wal
+legacy/data/app.db-shm
+legacy/data/events.ndjson
+legacy/data/worktrees/
+legacy/artifacts/
+legacy/**/.next/
+legacy/**/dist/
+legacy/**/*.tsbuildinfo
 
 # Local env / secrets
 .env
