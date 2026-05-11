@@ -33,9 +33,9 @@ export default async function RequestDetail({ params }: { params: Promise<{ id: 
         }}>{req.body_md}</pre>
       )}
       <p style={{ color: 'var(--fg-muted)', fontSize: 13 }}>
-        cost <b style={{ color: 'var(--fg)' }}>${cost.cost_usd.toFixed(4)}</b> · {cost.invocations} calls ·
-        in {cost.input_tokens.toLocaleString()} / out {cost.output_tokens.toLocaleString()} tok ·
-        cache {cost.cache_read_tokens.toLocaleString()} tok · turns {cost.turns}
+        cost <b style={{ color: 'var(--fg)' }}>${(cost?.cost_usd ?? 0).toFixed(4)}</b> · {cost?.invocations ?? 0} calls ·
+        in {(cost?.input_tokens ?? 0).toLocaleString()} / out {(cost?.output_tokens ?? 0).toLocaleString()} tok ·
+        cache {(cost?.cache_read_tokens ?? 0).toLocaleString()} tok · turns {cost?.turns ?? 0}
       </p>
 
       <h2>Tasks ({tasks.length})</h2>

@@ -93,6 +93,8 @@ flowchart TD
 curl -fsSL https://raw.githubusercontent.com/kiju7/agent-forge/main/install.sh | bash
 ```
 
+> **Plugin manifest**: 이 한 줄 설치가 사실상 `.claude-plugin/plugin.json` 매니페스트의 `install.oneLiner` 와 동일합니다. 향후 Claude Code 플러그인 마켓플레이스가 표준화되면 `claude plugin install kiju7/agent-forge` 한 줄로 동일하게 동작하게 만들어 둔 형태예요.
+
 이 한 줄이 다음을 자동 처리합니다:
 - 사전 요구사항(Node·git·pnpm·claude) 점검
 - 레포 클론 (`./agent-forge`)

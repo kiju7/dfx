@@ -116,6 +116,14 @@ export default async function TaskDetail({ params }: { params: Promise<{ id: str
     return { finding: f, ralphRun, followupAgent };
   });
 
+  // Live Activity 패널 가시성 & 모드
+  // - in_progress / qc → 'active' (SSE 연결, 자동 스크롤, 높이 제한)
+  // - done / blocked / failed → 'done' (SSE 닫힘, 완전 펼침)
+  // - pending → hide (시작 전이라 보여줄 활동 없음)
+  const liveActivityStatus: 'active' | 'done' =
+    task.status === 'in_progress' || task.status === 'qc' ? 'active' : 'done';
+  const showLiveActivity = task.status !== 'pending';
+
   return (
     <>
       <h1>{task.title}</h1>
@@ -146,7 +154,7 @@ export default async function TaskDetail({ params }: { params: Promise<{ id: str
         </p>
       )}
 
-      {(task.status === 'in_progress' || task.status === 'qc') && (
+      {showLiveActivity && (
         <>
           <h2>Live activity</h2>
           <div style={{
@@ -156,17 +164,17 @@ export default async function TaskDetail({ params }: { params: Promise<{ id: str
             padding: 16,
             marginTop: 8,
           }}>
-            <LiveActivity taskId={id} />
+            <LiveActivity taskId={id} status={liveActivityStatus} />
           </div>
         </>
       )}
 
       <h2>Cost</h2>
       <p style={{ color: 'var(--fg-muted)' }}>
-        총 <b style={{ color: 'var(--fg)' }}>${costSummary.cost_usd.toFixed(4)}</b> · {costSummary.invocations} calls ·
-        in {costSummary.input_tokens.toLocaleString()} tok / out {costSummary.output_tokens.toLocaleString()} tok ·
-        cache read {costSummary.cache_read_tokens.toLocaleString()} tok ·
-        turns {costSummary.turns}
+        총 <b style={{ color: 'var(--fg)' }}>${(costSummary?.cost_usd ?? 0).toFixed(4)}</b> · {costSummary?.invocations ?? 0} calls ·
+        in {(costSummary?.input_tokens ?? 0).toLocaleString()} tok / out {(costSummary?.output_tokens ?? 0).toLocaleString()} tok ·
+        cache read {(costSummary?.cache_read_tokens ?? 0).toLocaleString()} tok ·
+        turns {costSummary?.turns ?? 0}
       </p>
       {costDetail.length > 0 && (
         <table className="table">

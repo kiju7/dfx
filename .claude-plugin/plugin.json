@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "agent-forge",
+  "version": "0.1.0",
+  "description": "Multi-agent engineering system — triage routes user requests to specialist agents (frontend / backend / database / devops / UX / AI), four QC agents fan out for parallel review, and a Ralph Loop auto-fixes findings inside isolated git worktrees. Persistent SQLite state, complexity-based auto model selection (Sonnet ↔ Opus), and a Next.js dashboard with live activity feed.",
+  "author": {
+    "name": "kiju7",
+    "url": "https://github.com/kiju7"
+  },
+  "homepage": "https://github.com/kiju7/agent-forge",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kiju7/agent-forge.git"
+  },
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "claude-agent-sdk",
+    "multi-agent",
+    "orchestration",
+    "engineering-automation",
+    "git-worktree",
+    "ralph-loop",
+    "qc",
+    "auto-tier"
+  ],
+  "engines": {
+    "node": ">=20",
+    "claude-code": ">=2.0"
+  },
+
+  "//commands": "Slash commands shipped by this plugin. Claude Code also auto-discovers .claude/commands/*.md; this is the explicit declaration for plugin marketplaces.",
+  "commands": "./.claude/commands/",
+
+  "//agents": "1st-class agent role definitions with YAML frontmatter. Loaded by the orchestrator at boot via packages/agents/md-loader.ts — not a Claude Code subagent tree.",
+  "agents": "./agents/",
+
+  "//services": "agent-forge runs two long-lived local services. The plugin manifest is declarative; actual lifecycle is owned by install.sh (initial bring-up) and by the /forge slash command (auto-boot per session).",
+  "services": [
+    {
+      "name": "orchestrator",
+      "description": "Node daemon — owns DB writes, triage/dispatch, worktrees, Ralph Loop, SSE event source. Sole writer of data/app.db.",
+      "port": 4317,
+      "start": "pnpm orchestrator",
+      "health": "http://127.0.0.1:4317/health"
+    },
+    {
+      "name": "dashboard",
+      "description": "Next.js read-only UI — kanban, decisions, handover FTS5 search, /tasks/[id] live activity feed.",
+      "port": 54317,
+      "start": "pnpm dashboard",
+      "health": "http://127.0.0.1:54317/"
+    }
+  ],
+
+  "//install": "Bootstrap script for fresh machines: pnpm install + migrate + /forge global registration with path substitution. Idempotent.",
+  "install": {
+    "type": "script",
+    "command": "./install.sh",
+    "oneLiner": "curl -fsSL https://raw.githubusercontent.com/kiju7/agent-forge/main/install.sh | bash"
+  },
+
+  "env": {
+    "AGENT_FORGE_MODEL": {
+      "description": "Force a specific model for all dev/QC agents — overrides the per-task auto-tier verdict. e.g. 'claude-opus-4-7' or 'claude-sonnet-4-6'.",
+      "required": false
+    },
+    "AGENT_FORGE_TRIAGE_MODEL": {
+      "description": "Force the triage model (default: claude-haiku-4-5-20251001).",
+      "required": false
+    },
+    "AGENT_FORGE_AUTO_TIER": {
+      "description": "'on' (default, complex → Opus), 'conservative' (same as on), 'eager' (standard also → Opus), 'off' (use each agent's MD-declared model).",
+      "required": false,
+      "default": "on"
+    },
+    "RALPH_FINDING_CAP": {
+      "description": "Maximum number of findings Ralph processes per task (severity-ranked). Caps cost.",
+      "required": false,
+      "default": "3"
+    }
+  }
+}

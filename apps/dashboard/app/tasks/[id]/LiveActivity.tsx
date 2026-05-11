@@ -24,23 +24,39 @@ const ACTION_ICON: Record<string, string> = {
 };
 
 const MAX_ENTRIES = 200;        // memory cap; the panel itself scrolls
-const PANEL_MAX_HEIGHT = 360;   // px — start scrolling beyond this
+const SCROLL_THRESHOLD = 12;   // below this count → natural height, no scroll
+const PANEL_MAX_HEIGHT = 360;  // px — used when entries >= SCROLL_THRESHOLD
 
 function trimTarget(target: string, max = 120): string {
   if (target.length <= max) return target;
   return target.slice(0, max - 1) + '…';
 }
 
-export default function LiveActivity({ taskId }: { taskId: string }) {
-  // Newest-first list. We render in this order (so latest stays visible at top
-  // when the user is scrolled to top). The scrollbar starts at top by default.
+// Decision: oldest-first + sticky-bottom pattern chosen.
+// Rationale: matches chat/terminal UX — new events append at bottom,
+// user scrolls up to see history. When stuck to bottom, auto-scroll
+// keeps latest visible. When user scrolls up, auto-scroll pauses.
+// status='done' → full expand (no maxHeight) + SSE closed.
+
+export default function LiveActivity({
+  taskId,
+  status,
+}: {
+  taskId: string;
+  status: 'active' | 'done';
+}) {
+  // Oldest-first list — new entries appended to the end.
   const [entries, setEntries] = useState<ActivityEntry[]>([]);
   const [live, setLive] = useState(false);
   const seenIds = useRef<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const stuckToTopRef = useRef<boolean>(true);
+  // sticky-bottom: true means the viewport is pinned to the bottom.
+  const stuckToBottomRef = useRef<boolean>(true);
 
   useEffect(() => {
+    // If task is already done, don't open SSE at all.
+    if (status === 'done') return;
+
     const es = new EventSource('/api/events');
     es.onopen = () => setLive(true);
     es.onerror = () => setLive(false);
@@ -59,39 +75,42 @@ export default function LiveActivity({ taskId }: { taskId: string }) {
           target: evt.payload.target ?? '',
           tool: evt.payload.tool,
         };
-        setEntries((prev) => [next, ...prev].slice(0, MAX_ENTRIES));
+        // oldest-first: append to end
+        setEntries((prev) => [...prev, next].slice(-MAX_ENTRIES));
       } catch {
         /* ignore */
       }
     };
     return () => es.close();
-  }, [taskId]);
+  }, [taskId, status]);
 
-  // Track whether the user is sticking to the latest (scrollTop near 0 since
-  // we render newest at top). When new entries arrive while stuck, keep the
-  // viewport pinned to top; otherwise leave their scroll position alone.
+  // Track whether the user is stuck to the bottom.
+  // Fire whenever entries change: if stuck, scroll to bottom.
   const onScroll = (ev: React.UIEvent<HTMLDivElement>) => {
-    stuckToTopRef.current = ev.currentTarget.scrollTop <= 8;
+    const el = ev.currentTarget;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    stuckToBottomRef.current = distanceFromBottom <= 8;
   };
+
   useLayoutEffect(() => {
-    if (stuckToTopRef.current && scrollRef.current) {
-      scrollRef.current.scrollTop = 0;
+    const el = scrollRef.current;
+    if (!el) return;
+    if (stuckToBottomRef.current) {
+      el.scrollTop = el.scrollHeight;
     }
   }, [entries.length]);
 
   if (entries.length === 0) {
     return (
       <div className="empty" style={{ padding: '20px' }}>
-        {live ? '활동 대기 중…' : '연결 중…'}
+        {status === 'done' ? '활동 기록 없음.' : live ? '활동 대기 중…' : '연결 중…'}
       </div>
     );
   }
 
   // 1) Collapse identical consecutive entries (same agent + action + target)
-  //    into a single visual row with a ×N badge. "Identical" really means
-  //    identical — the offset/limit hint added in describeToolUse() makes
-  //    different file ranges appear as different targets.
-  type CollapsedItem = ActivityEntry & { count: number; latestTs: number };
+  //    into a single visual row with a ×N badge.
+  type CollapsedItem = ActivityEntry & { count: number };
   const collapsed: CollapsedItem[] = [];
   for (const e of entries) {
     const last = collapsed[collapsed.length - 1];
@@ -102,16 +121,12 @@ export default function LiveActivity({ taskId }: { taskId: string }) {
       last.target === e.target
     ) {
       last.count += 1;
-      // latestTs stays the oldest in this collapsed run (since we render
-      // newest-first, the first one we encountered IS the latest). Don't
-      // touch it.
     } else {
-      collapsed.push({ ...e, count: 1, latestTs: e.ts });
+      collapsed.push({ ...e, count: 1 });
     }
   }
 
-  // 2) Group consecutive collapsed items by agent so the visual reads like
-  //    "Frontend Lead is doing X, Y, Z".
+  // 2) Group consecutive collapsed items by agent.
   type Group = { agentId: string; items: CollapsedItem[] };
   const groups: Group[] = [];
   for (const e of collapsed) {
@@ -120,23 +135,42 @@ export default function LiveActivity({ taskId }: { taskId: string }) {
     else groups.push({ agentId: e.agentId, items: [e] });
   }
 
+  // 3) Compute scroll container style.
+  //    - status === 'done' → full expand, no maxHeight
+  //    - entries < SCROLL_THRESHOLD → natural height
+  //    - entries >= SCROLL_THRESHOLD → constrained height with scroll
+  const needsScroll = status !== 'done' && entries.length >= SCROLL_THRESHOLD;
+  const scrollStyle: React.CSSProperties = needsScroll
+    ? {
+        // Mobile: min(360px, 45vh); desktop: 360px via clamp
+        maxHeight: `min(${PANEL_MAX_HEIGHT}px, 45vh)`,
+        overflowY: 'auto',
+      }
+    : {
+        maxHeight: 'none',
+        overflowY: 'visible',
+      };
+
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <span style={{ fontSize: 11, color: 'var(--fg-muted)' }}>
-          {entries.length} events · newest first
+          {entries.length} events · oldest first
         </span>
-        <span style={{ fontSize: 11, color: live ? 'var(--st-done)' : 'var(--fg-subtle)' }}>
-          {live ? '● live' : '○ offline'}
-        </span>
+        {status === 'done' ? (
+          <span style={{ fontSize: 11, color: 'var(--fg-subtle)' }}>● done</span>
+        ) : (
+          <span style={{ fontSize: 11, color: live ? 'var(--st-done)' : 'var(--fg-subtle)' }}>
+            {live ? '● live' : '○ offline'}
+          </span>
+        )}
       </div>
 
       <div
         ref={scrollRef}
         onScroll={onScroll}
         style={{
-          maxHeight: PANEL_MAX_HEIGHT,
-          overflowY: 'auto',
+          ...scrollStyle,
           paddingRight: 6,
           scrollbarGutter: 'stable',
           display: 'flex',
