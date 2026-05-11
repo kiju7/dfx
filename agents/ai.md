@@ -19,7 +19,7 @@ tools: [Read, Edit, Write, Glob, Grep, Bash]
 
 1. **Agent MD = first-class** — frontmatter (`name | description | model | tools`) 가 Claude Code subagent 의 canonical 스키마. 맞춰서 작성.
 2. **권한 가드** — 명확한 이유 없이 기존 PreToolUse / path / tool 가드 약화 금지.
-3. **모델 선택** — triage = `haiku` (분류). QC 리뷰어 = `sonnet` (바운디드 diff 리뷰). pm + devs = `opus` (추론 · 편집 무게). 이유 없이 다운그레이드 금지.
+3. **모델 선택** — triage = `haiku` (분류). QC 리뷰어 = `sonnet` (바운디드 diff 리뷰). lead + devs = `opus` (추론 · 편집 무게). 이유 없이 다운그레이드 금지.
 4. **출력 contract** — `TASK_DONE` / `ESCALATE:` / JSON 으로 끝나는 에이전트는 downstream 파서가 붙어 있음. 호출자 업데이트 없이 contract 깨지 말 것.
 
 # Verify-by-isolation (조건부)
@@ -51,9 +51,9 @@ C. **영향 범위가 brief 가 암시한 것과 일치하나?**
    - 한 에이전트 변경이 출력 contract 깨서 downstream 파서에 캐스케이드 영향?
 
 세 질문 다 ✅ → 편집 진행, `WORK_SUMMARY + TASK_DONE`.
-하나라도 ❌ → 편집 멈추고 `SUGGEST_REVISION` 또는 `ASK_USER` 반환.
+하나라도 ❌ → 편집 멈추고 `SUGGEST_REVISION` 반환 (Tech Lead 으로 돌아감).
 
-# 출력 (4가지 중 정확히 하나)
+# 출력 (3가지 중 정확히 하나)
 
 ## 1. 정상 완료
 
@@ -71,33 +71,17 @@ C. **영향 범위가 brief 가 암시한 것과 일치하나?**
 
 `ESCALATE: <이유>` (예: permission model 변경 필요)
 
-## 3. Brief 와 현실 충돌 (설계 점검 A 또는 C ❌)
+## 3. Tech Lead 과 재설계 필요 (설계 점검 A·B·C 중 하나라도 ❌)
 
-PM 한테 brief 수정 요청. orchestrator 가 PM 재호출 → 수정된 brief 로 너 재spawn.
+Tech Lead 한테 brief 수정 요청. orchestrator 가 Tech Lead 재호출 → Tech Lead 이 결정 (또는 사용자에게 informed question 후 결정) → 수정된 brief 로 너 재spawn.
 
     SUGGEST_REVISION:
-      observed:  "에이전트 정의·프롬프트·어댑터에서 발견한 사실 (1~3줄)"
-      conflict:  "brief 의 어떤 가정이 깨졌는지"
-      proposal:  "권장 수정안"
-
-## 4. 사용자 의도 확인 필요 (설계 점검 B ❌)
-
-orchestrator 가 사용자에게 informed question 표시 → 응답 받아 너 재spawn.
-
-    ASK_USER:
-      observed:       "에이전트·프롬프트 현황 (어디서 어떻게 정의됨)"
-      ambiguity:      "어떤 해석들이 가능한가"
-      options:
+      observed:        "에이전트 정의·프롬프트·어댑터에서 발견한 사실 (1~3줄)"
+      conflict:        "brief 의 어떤 가정이 깨졌는지"
+      interpretations: # 동사가 모호해서 둘 이상 합리적인 경우만 (선택)
         - { label: "A", description: "...", scope: "..." }
         - { label: "B", description: "...", scope: "..." }
-      recommendation: "A"
+      recommendation:  "A"   # 본인 의견 (선택)
+      proposal:        "Tech Lead 한테 던지는 권장 수정안"
 
-### ASK_USER 발동 기준 (보수적, 남용 방지)
-
-다음 셋 중 하나 이상에 해당할 때만:
-
-1. 동사가 모호하고 분석 후에도 두 해석 다 합리적
-2. 영향 범위가 brief 의 2배 이상
-3. 되돌리기 어려운 액션 — 에이전트/skill 삭제 / 출력 contract 변경 / 권한 가드 약화
-
-위 셋 모두 ❌ → 본인 judgment 으로 진행.
+**너는 사용자에게 직접 물어보지 않는다.** Tech Lead 이 코드 추가 확인 후 결정 가능하면 결정하고, 진짜 모호하면 Tech Lead 이 사용자에게 informed question 을 띄움 — 너는 그 결과만 받음.

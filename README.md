@@ -1,6 +1,6 @@
 # agent-forge
 
-**Claude Code 안에서 다중 전문 에이전트가 협업하는 엔지니어링 파이프라인.** `/forge "X 해줘"` 한 번이면 — triage 가 분류하고, 필요하면 PM 이 분해하고, frontend/backend/database/devops/daemon/ux/ai 전문 에이전트가 **병렬로** 작업하고, 4명의 QC 가 **병렬로** 검토하고, 발견된 결함은 **Ralph Loop** (findings 가 0이 될 때까지 반복) 가 자동으로 고칩니다.
+**Claude Code 안에서 다중 전문 에이전트가 협업하는 엔지니어링 파이프라인.** `/forge "X 해줘"` 한 번이면 — triage 가 분류하고, 필요하면 **Tech Lead** 가 코드를 read 한 후 분해하고, frontend/backend/database/devops/daemon/ux/ai 전문 에이전트가 **병렬로** 작업하고, 4명의 QC 가 **병렬로** 검토하고, 발견된 결함은 **Ralph Loop** (findings 가 0이 될 때까지 반복) 가 자동으로 고칩니다.
 
 > 100% 네이티브 — Claude Code 의 `Task` subagent 도구로만 동작. 외부 서버·DB·대시보드 없음. 설치 = `/plugin install` 두 줄.
 
@@ -16,7 +16,7 @@
    │
    ├─ direct ─────────────────┐
    │                          │
-   └─ pm → 📋 PM (sub-task 분해, 의존성) ──┐
+   └─ lead → 📋 Tech Lead (코드 read → sub-task 분해, 의존성) ──┐
                                           │
                                           ▼
                             ⚒️  병렬 dev subagents
@@ -48,7 +48,7 @@
 | 사용자 입력 | 자동 처리 |
 |---|---|
 | `/forge "칸반 카드 hover 시 배경 살짝 밝게"` | triage → frontend → QC×4 → (clean) → 요약 |
-| `/forge "사용자 프로필 페이지 만들어줘"` | triage → pm → (database + backend + frontend 병렬) → QC×4 → fix → 요약 |
+| `/forge "사용자 프로필 페이지 만들어줘"` | triage → lead → (database + backend + frontend 병렬) → QC×4 → fix → 요약 |
 | `/forge "GitHub Actions CI 추가, push 마다 typecheck+build"` | triage → devops → QC×4 → 요약 |
 | `/forge "tasks 테이블에 priority 컬럼 + 인덱스"` | triage → database → QC×4 → 요약 |
 
@@ -114,9 +114,9 @@ rm -rf /tmp/agent-forge
 - **명확한 도메인 단어**를 1~2개 포함 → triage 정확도 ↑
   - 좋음: `"globals.css 에 hover 효과 추가"`, `"tasks 테이블 priority 컬럼 추가"`
   - 약함: `"좀 더 예쁘게"`, `"성능 좋게"`
-- **목표를 한 문장**으로 — 긴 명세는 PM 이 분해해주니까 줄거리만 던지세요.
-- **다중 도메인**은 한 호출로 OK — triage 가 route=pm 으로 보내고 PM 이 알아서 쪼갭니다.
-- **PM ↔ Dev 설계 대화 + ASK_USER** (v0.7.0+): dev 가 Discovery 후 brief 가 코드 현실과 맞지 않다고 판단하면 `SUGGEST_REVISION` 으로 PM 한테 돌아가 brief 를 수정합니다. 의도가 진짜 모호하면 (`비활성화 vs 삭제` 같은) `ASK_USER` 로 사용자에게 informed question 을 던집니다. 답해주면 그 결정으로 진행.
+- **목표를 한 문장**으로 — 긴 명세는 Tech Lead 가 분해해주니까 줄거리만 던지세요.
+- **다중 도메인**은 한 호출로 OK — triage 가 route=lead 로 보내고 Tech Lead 가 코드 보고 쪼갭니다.
+- **Tech Lead ↔ Dev 설계 대화** (v0.8+): **Tech Lead** 가 코드를 적극적으로 read 한 후 분해 — 초기 분해부터 코드 reality 반영. 의도가 진짜 모호하면 (`비활성화 vs 삭제` 같은) **Tech Lead 가 초기 분해 시점에 직접 사용자에게 informed question** 을 띄움. dev 가 Discovery 중 brief 가 코드와 안 맞다고 판단하면 `SUGGEST_REVISION` 으로 Tech Lead 한테 돌아가 brief 수정. Dev 가 직접 사용자에게 묻지 않음 — 항상 Tech Lead 경유.
 
 ### 출력 형식 (parent chat)
 
@@ -148,10 +148,10 @@ subagent 내부 로그는 **parent chat 에 새지 않습니다** — Task subag
 | 작업 규모 | 모델 분포 | 1 회 비용 추정 |
 |---|---|---|
 | 단순 fix (한 파일) | Triage(Haiku) + dev(Opus) + QC×4(Sonnet) | $0.40–1.50 |
-| 일반 기능 / 버그 | + PM(Opus) + Ralph 1~2 iter | $2–8 |
+| 일반 기능 / 버그 | + Tech Lead(Opus, 코드 read 포함) + Ralph 1~2 iter | $2–8 |
 | 다중 도메인 신규 기능 | dev 여러 개 병렬(Opus) + QC×4 + Ralph 2~5 iter | $8–30 |
 
-기본 티어: triage = haiku (분류), QC×4 = sonnet (바운디드 diff 리뷰), pm + 7 devs = opus (실제 추론·편집).
+기본 티어: triage = haiku (분류), QC×4 = sonnet (바운디드 diff 리뷰), Tech Lead + 7 devs = opus (실제 추론·편집).
 
 비용 제어:
 - 비싸다 싶으면 `agents/<dev>.md` 의 `model: opus` → `sonnet` 로 다운그레이드 (품질 vs 비용 트레이드).
@@ -172,7 +172,7 @@ agent-forge/
 │   └── forge/SKILL.md           # 파이프라인 오케스트레이션 로직
 └── agents/                      # 13개 네이티브 subagent
     ├── triage.md
-    ├── pm.md
+    ├── lead.md
     ├── frontend.md
     ├── backend.md
     ├── database.md

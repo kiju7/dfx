@@ -1,6 +1,6 @@
 ---
 name: forge
-description: Multi-agent engineering pipeline that runs entirely inside Claude Code. Triages a user request, breaks it down via PM if needed, dispatches specialist devs in parallel, runs QC reviewers, and feeds findings back as fix tasks — all via Task-tool subagents.
+description: Multi-agent engineering pipeline that runs entirely inside Claude Code. Triages a user request, breaks it down via Tech Lead if needed, dispatches specialist devs in parallel, runs QC reviewers, and feeds findings back as fix tasks — all via Task-tool subagents.
 ---
 
 # forge — agent-forge 네이티브 파이프라인
@@ -18,20 +18,53 @@ description: Multi-agent engineering pipeline that runs entirely inside Claude C
 `Task(subagent_type: "triage")` 를 사용자 요청 원문으로 spawn. JSON 반환:
 
 ```json
-{ "kind": "...", "route": "pm"|"direct", "targets": [...], "confidence": 0.x, "reasoning": "..." }
+{ "kind": "...", "route": "lead"|"direct", "targets": [...], "confidence": 0.x, "reasoning": "..." }
 ```
 
 파싱 후 한 줄 상태 출력:
 
 > 🎯 **Triage** — `<kind>` · route=`<route>` · targets=`<targets>`
 
-### 2. Plan (route == "pm" 인 경우만)
+### 2. Plan — Tech Lead (route == "lead" 인 경우)
 
-`route == "pm"` 이면 `Task(subagent_type: "pm")` 을 spawn. 반환:
+`route == "lead"` 이면 `Task(subagent_type: "lead")` spawn.
+
+**Tech Lead 는 코드를 적극적으로 read 한 후 분해**. 두 응답 중 하나 반환:
+
+**(a) 분해 완료**:
 
 ```json
 { "summary": "...", "subtasks": [ { "title": "...", "targets": ["frontend"], "brief": "...", "depends_on": [] } ] }
 ```
+
+**(b) 사용자 확인 필요** (코드 read 후에도 의도 모호):
+
+```json
+{
+  "needs_user": true,
+  "question": { "observed": "...", "ambiguity": "...", "options": [...], "recommendation": "A" },
+  "branches": {
+    "A": { "summary": "...", "subtasks": [...] },
+    "B": { "summary": "...", "subtasks": [...] }
+  },
+  "reasoning": "..."
+}
+```
+
+(b) 인 경우 orchestrator 처리:
+1. 부모 chat 에 표시:
+
+   > 🤔 **확인 필요** [Tech Lead 초기 분해]
+   >
+   > 코드 분석: `<observed>`
+   > 모호함: `<ambiguity>`
+   >
+   >   A. `<option A>` — `<scope>`
+   >   B. `<option B>` — `<scope>`
+   >
+   > 추천: `<recommendation>`. 어떻게 갈까?
+
+2. 사용자 응답 받음 → `branches[answer]` 의 subtasks 로 진행
 
 `route == "direct"` 면 sub-task 1개 합성:
 ```json
@@ -55,49 +88,72 @@ sub-task 를 의존성 layer 로 묶음:
 
 **Same-role 직렬화** — 한 layer 안에 동일 role sub-task 가 2개 이상이면 그것들끼리는 **직렬 spawn** (한 메시지에 1 Task → `TASK_DONE` 받고 → 다음 메시지에 다음 Task). 같은 파일 동시 편집으로 인한 lost-update 방지. 다른 role 끼리는 같은 메시지에서 그대로 병렬.
 
-각 dev subagent 는 **4가지 중 하나** 반환:
+각 dev subagent 는 **3가지 중 하나** 반환:
 
 | 반환 | 의미 |
 |---|---|
 | `WORK_SUMMARY:` + `TASK_DONE` | 정상 완료 |
 | `ESCALATE: <이유>` | 진행 불가 |
-| `SUGGEST_REVISION:` 블록 | brief vs 코드 현실 충돌 → PM 재호출하여 brief 수정 (3a) |
-| `ASK_USER:` 블록 | 의도 모호 → 사용자에게 informed question (3b) |
+| `SUGGEST_REVISION:` 블록 | brief 와 코드 현실 충돌 또는 동사 모호 → **Tech Lead 한테 돌아가 재설계** (3a) |
 
 `WORK_SUMMARY` 는 role 별로 보관 — step 5 의 fix Task spawn 때 후임 에이전트한테 전임자 컨텍스트로 끼움.
 
-#### 3a. `SUGGEST_REVISION` 처리
+**Dev 는 사용자에게 직접 묻지 않음.** 모든 모호함·충돌은 Tech Lead 으로 돌아감. Tech Lead 이 코드 추가 확인 후 결정하거나, 그래도 모호하면 Tech Lead 이 사용자에게 informed question 을 띄움.
+
+#### 3a. `SUGGEST_REVISION` 처리 (Dev → Tech Lead → 결정 or User → Dev 재spawn)
 
 dev 반환 형태:
 
     SUGGEST_REVISION:
-      observed:  "코드에서 발견한 사실"
-      conflict:  "brief 의 어떤 가정이 깨졌는지"
-      proposal:  "권장 수정안"
+      observed:         "코드에서 발견한 사실"
+      conflict:         "brief 의 어떤 가정이 깨졌는지"
+      interpretations:  # 동사 해석이 둘 이상 합리적일 때만 (선택)
+        - { label: "A", description: "...", scope: "..." }
+        - { label: "B", description: "...", scope: "..." }
+      recommendation:   "A"   # dev 의 의견 (선택)
+      proposal:         "Tech Lead 한테 던지는 권장 수정안"
 
 orchestrator:
-1. `Task(subagent_type: "pm")` 재호출 — prompt 에 원본 user 요청 + 이전 sub-task brief + dev 의 SUGGEST_REVISION 포함
-2. PM 반환: `{ "revision": true, "subtask": { 수정된 brief }, "reasoning": "..." }`
-3. revised brief 로 dev 재spawn (같은 role)
+1. `Task(subagent_type: "lead")` 재호출 (revision mode) — prompt 에 원본 user 요청 + 이전 sub-task brief + dev 의 SUGGEST_REVISION 전체
+2. Tech Lead 이 **두 가지 응답** 중 하나 반환:
+
+   **(a) Decide — brief 수정해서 진행**:
+   ```json
+   { "revision": true, "subtask": { 수정된 brief }, "reasoning": "..." }
+   ```
+   → 수정된 brief 로 dev 재spawn.
+
+   **(b) Escalate — 사용자 확인 필요**:
+   ```json
+   {
+     "revision": true,
+     "needs_user": true,
+     "question": {
+       "observed": "...", "ambiguity": "...",
+       "options": [
+         { "label": "A", "description": "...", "scope": "..." },
+         { "label": "B", "description": "...", "scope": "..." }
+       ],
+       "recommendation": "A"
+     },
+     "branches": {
+       "A": { "title": "...", "targets": [...], "brief": "A 선택 시 brief", "depends_on": [] },
+       "B": { "title": "...", "targets": [...], "brief": "B 선택 시 brief", "depends_on": [] }
+     },
+     "reasoning": "..."
+   }
+   ```
+   → 3b 처리로 분기.
 
 상태 라인:
 > 🔄 **Revise** [`<role>` · `<sub-task title>`] — round `<n>`
 
-**라운드 제한**: 같은 sub-task 의 revision 라운드 **최대 2회**. 3회째 SUGGEST_REVISION 이 오면 orchestrator 가 자동으로 ASK_USER 형식으로 변환해 사용자에게 escalate.
+**라운드 제한**: revision 라운드 **최대 2회**. 3회째도 미해결이면 자동 escalate-to-user 강제.
 
-#### 3b. `ASK_USER` 처리
+#### 3b. Tech Lead 의 사용자 escalation 처리
 
-dev 반환 형태:
+Tech Lead 이 `needs_user: true` 반환한 경우 orchestrator:
 
-    ASK_USER:
-      observed:       "코드에서 발견한 사실"
-      ambiguity:      "어떤 해석들이 가능한가"
-      options:
-        - { label: "A", description: "...", scope: "..." }
-        - { label: "B", description: "...", scope: "..." }
-      recommendation: "A"
-
-orchestrator:
 1. 부모 chat 에 표시:
 
    > 🤔 **확인 필요** [`<role>` · `<sub-task title>`]
@@ -111,12 +167,12 @@ orchestrator:
    > 추천: `<recommendation>`. 어떻게 갈까?
 
 2. 사용자 응답 (다음 user message) 받음
-3. 응답을 brief 에 명시적으로 박아 dev 재spawn
+3. 응답 매칭:
+   - "A" / "B" 라벨로 응답 → `branches[label]` 를 brief 로 사용 → dev 재spawn
+   - 다른 답 (예: "C 안 만들어줘") → Tech Lead 재호출 (응답을 context 에 박아서) → Tech Lead 이 새 revised brief 반환
 
 상태 라인 (대기 중):
 > 🤔 **Ask** [`<role>` · `<sub-task title>`] — awaiting user input
-
-**ASK_USER 발동 기준은 dev 프롬프트 측에 정의** (보수적: 모호 + 두 해석 합리 / 영향 2배 이상 / 되돌리기 어려움 셋 중 하나).
 
 layer 끝나면 한 줄:
 

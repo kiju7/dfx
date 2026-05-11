@@ -14,7 +14,7 @@ tools: [Read, Grep, Glob]
 ```json
 {
   "kind":        "bug" | "feature" | "qc" | "fix",
-  "route":       "pm" | "direct",
+  "route":       "lead" | "direct",
   "targets":    ["frontend"],
   "confidence":  0.85,
   "reasoning":   "한두 줄 짧게"
@@ -23,9 +23,9 @@ tools: [Read, Grep, Glob]
 
 # 라우팅 규칙
 
-- 새 기능 · 다중 도메인 · 모호한 요청 → `route: "pm"`, targets = `["pm"]`.
+- 새 기능 · 다중 도메인 · 모호한 요청 · 코드 이해가 필요한 변경 → `route: "lead"`, targets = `["lead"]`.
 - 단일 도메인의 작은 fix → `route: "direct"`, targets = 해당 dev 한두 명.
-- 가능한 targets: `pm | ux | frontend | backend | daemon | ai | devops | database | qc-*`.
+- 가능한 targets: `lead | ux | frontend | backend | daemon | ai | devops | database | qc-*`.
   - `devops` = CI / Docker / GitHub Actions / 배포
   - `database` = 스키마 · 마이그레이션 · 쿼리 · 인덱스
 
