@@ -4,6 +4,7 @@ import { runAgentForJson } from '@agent-forge/agents';
 import { TriageOutputSchema, type TriageOutput, findWorkspaceRoot } from '@agent-forge/shared';
 import { queries } from '@agent-forge/db';
 import * as registry from './registry.js';
+import { publish } from './events/publisher.js';
 
 const REPO_ROOT = findWorkspaceRoot();
 const AGENTS_MD = resolve(REPO_ROOT, 'AGENTS.md');
@@ -56,7 +57,20 @@ export async function runTriage(input: TriageInput): Promise<TriageOutput> {
   ].join('\n');
 
   const out = await runAgentForJson({
-    opts: { spec, prompt, cwd: REPO_ROOT },
+    opts: {
+      spec,
+      prompt,
+      cwd: REPO_ROOT,
+      onActivity: (a) =>
+        publish('agent.activity', {
+          taskId: null,
+          requestId: input.requestId,
+          agentId: spec.id,
+          action: a.action,
+          target: a.target,
+          tool: a.tool,
+        }),
+    },
     parse: (raw) => TriageOutputSchema.parse(raw),
   });
   queries.costs.record({

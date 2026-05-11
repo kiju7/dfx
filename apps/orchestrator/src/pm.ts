@@ -6,6 +6,7 @@ import {
   type PmBreakdown,
 } from '@agent-forge/shared';
 import * as registry from './registry.js';
+import { publish } from './events/publisher.js';
 
 const REPO_ROOT = findWorkspaceRoot();
 
@@ -30,7 +31,20 @@ export async function runPmBreakdown(input: {
   ].join('\n');
 
   const out = await runAgentForJson({
-    opts: { spec, prompt, cwd: REPO_ROOT },
+    opts: {
+      spec,
+      prompt,
+      cwd: REPO_ROOT,
+      onActivity: (a) =>
+        publish('agent.activity', {
+          taskId: null,
+          requestId: input.requestId,
+          agentId: spec.id,
+          action: a.action,
+          target: a.target,
+          tool: a.tool,
+        }),
+    },
     parse: (raw) => PmBreakdownSchema.parse(raw),
   });
   queries.costs.record({

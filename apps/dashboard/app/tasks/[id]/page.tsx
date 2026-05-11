@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { queries } from '@agent-forge/db';
 import LiveBoard from '../../LiveBoard';
+import LiveActivity from './LiveActivity';
 import { getAgentMeta } from '../../../lib/agent-meta';
 
 export const dynamic = 'force-dynamic';
@@ -46,6 +47,21 @@ export default async function TaskDetail({ params }: { params: Promise<{ id: str
         <p style={{ fontSize: 12, color: 'var(--fg-muted)' }}>
           worktree <code>{task.worktree_path}</code> · branch <code>{task.branch_name}</code>
         </p>
+      )}
+
+      {(task.status === 'in_progress' || task.status === 'qc') && (
+        <>
+          <h2>Live activity</h2>
+          <div style={{
+            background: 'var(--bg-elev)',
+            border: '1px solid var(--border)',
+            borderRadius: 8,
+            padding: 16,
+            marginTop: 8,
+          }}>
+            <LiveActivity taskId={id} />
+          </div>
+        </>
       )}
 
       <h2>Cost</h2>

@@ -47,6 +47,88 @@ export type Evt =
   | EventEnvelope<
       'artifact.added',
       { artifactId: string; taskId: string; kind: string; path: string }
+    >
+  | EventEnvelope<
+      'agent.activity',
+      {
+        taskId: string | null;
+        requestId: string | null;
+        agentId: string;
+        /** coarse action category used by UIs for icon selection */
+        action: ActivityAction;
+        /** human-readable target (file path, pattern, command head, etc.) */
+        target: string;
+        /** raw tool name from the SDK if available */
+        tool?: string;
+      }
     >;
 
 export type EvtKind = Evt['kind'];
+
+export const ACTIVITY_ACTIONS = [
+  'reading',
+  'writing',
+  'editing',
+  'searching',
+  'running',
+  'thinking',
+  'fetching',
+  'other',
+] as const;
+export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];
+
+const TOOL_TO_ACTION: Record<string, ActivityAction> = {
+  Read: 'reading',
+  NotebookRead: 'reading',
+  Glob: 'searching',
+  Grep: 'searching',
+  Edit: 'editing',
+  MultiEdit: 'editing',
+  Write: 'writing',
+  NotebookEdit: 'editing',
+  Bash: 'running',
+  WebFetch: 'fetching',
+  WebSearch: 'fetching',
+};
+
+const FILE_PATH_KEYS = ['file_path', 'notebook_path', 'path'] as const;
+
+export function describeToolUse(
+  toolName: string,
+  input: unknown
+): { action: ActivityAction; target: string; tool: string } | null {
+  if (!toolName) return null;
+  const action: ActivityAction = TOOL_TO_ACTION[toolName] ?? 'other';
+  let target = '';
+  const obj = (input && typeof input === 'object' ? (input as Record<string, unknown>) : {});
+
+  // File-touching tools — surface the path.
+  for (const key of FILE_PATH_KEYS) {
+    const v = obj[key];
+    if (typeof v === 'string' && v.length > 0) {
+      target = v;
+      break;
+    }
+  }
+
+  // Search tools — surface the pattern.
+  if (!target && (toolName === 'Glob' || toolName === 'Grep')) {
+    const pat = obj['pattern'];
+    if (typeof pat === 'string') target = pat;
+  }
+
+  // Bash — surface a command head.
+  if (!target && toolName === 'Bash') {
+    const cmd = obj['command'];
+    if (typeof cmd === 'string') target = cmd.slice(0, 80);
+  }
+
+  // WebFetch / WebSearch — surface the URL / query.
+  if (!target && (toolName === 'WebFetch' || toolName === 'WebSearch')) {
+    const u = obj['url'] ?? obj['query'];
+    if (typeof u === 'string') target = u.slice(0, 80);
+  }
+
+  if (!target) target = toolName;
+  return { action, target, tool: toolName };
+}

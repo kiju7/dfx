@@ -169,6 +169,15 @@ export async function enterRalphLoop(ctx: RalphContext): Promise<void> {
       prompt,
       resume: sessionId,
       complexity: ctx.complexity ?? ctx.task.complexity,
+      onActivity: (a) =>
+        publish('agent.activity', {
+          taskId: ctx.task.task_id,
+          requestId: ctx.requestId,
+          agentId: devSpec.id,
+          action: a.action,
+          target: a.target,
+          tool: a.tool,
+        }),
     });
     sessionId = result.sessionId ?? sessionId;
 

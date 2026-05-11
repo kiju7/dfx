@@ -38,7 +38,7 @@ You are now in **agent-forge interactive mode**. From this point on, treat every
    - `qc` — explicit quality check / audit
 2. **Draft** a clean title (≤ 80 chars) and body_md (concise: which files/areas, expected outcome, non-obvious constraints). Don't over-explain — agents read the code themselves.
 3. **POST** to `http://127.0.0.1:4317/requests` with the JSON, capture the returned `id`.
-4. **Tail** `data/events.ndjson` in the foreground with an `until` loop, up to 540s. Print each event's kind + key payload fields. Exit when `request.status_changed` reaches `done` or `blocked`.
+4. **Tail** `data/events.ndjson` in the foreground with an `until` loop, up to 540s. Render events so the user can see WHO is doing WHAT in real time (see "Live rendering" below). Exit when `request.status_changed` reaches `done` or `blocked`.
 5. **Summarize**:
    - Final status, new commits (`git log --oneline -5`)
    - Total cost (`SELECT SUM(cost_usd) FROM task_costs WHERE request_id='<id>' OR task_id IN (SELECT id FROM tasks WHERE request_id='<id>')`)
@@ -46,13 +46,52 @@ You are now in **agent-forge interactive mode**. From this point on, treat every
    - Decisions worth surfacing
 6. **Warn proactively** if cost > $5 or wall-clock > 8 minutes.
 
+#### Live rendering (the bit the user actually watches)
+
+Group events by agent / phase. Use these emojis per agent role:
+- triage 🧭 · pm 📋 · frontend 🎨 · backend 🛠 · database 🗄 · devops 🚀
+- daemon ⚙️ · ux ✨ · ai 🤖 · qc 🔍 · orchestrator/ralph 🔁
+
+For each `agent.activity` event, render a single indented line:
+- `action='reading'`      → `   📂 Reading <target>`
+- `action='editing'`      → `   ✏️ Editing <target>`
+- `action='writing'`      → `   📝 Writing <target>`
+- `action='searching'`    → `   🔎 <tool> <target>`
+- `action='running'`      → `   🐚 <target>` (head of Bash command)
+- `action='fetching'`     → `   🌐 <target>`
+- `action='other'`        → `   · <tool> <target>`
+
+When a new task starts (`task.created`), break into a fresh section with the agent's avatar + name as the heading. Example:
+
+```
+🎨 Frontend Lead  task abc123
+   📂 Reading apps/dashboard/app/page.tsx
+   ✏️ Editing apps/dashboard/app/globals.css
+   🐚 pnpm --filter @agent-forge/dashboard build
+   ✓ TASK_DONE (52s, 6 turns)
+```
+
+When multiple agents run in parallel (PM wave or QC fan-out), keep their activity blocks visually separated — interleaving is OK if it's chronological, but make sure each line clearly carries the agent's name/emoji so the user can follow.
+
+Suppress noise:
+- Same-file Read called >2× in <5s → collapse to "📂 Reading <target> ×N".
+- Glob/Grep called many times → show first 2 + "...";
+
+For `qc.finding` events: render under the QC agent's section as `⚠️ <severity>/<category> — <title>`.
+For `ralph.iteration`: `🔁 Ralph iter N (finding ...)`.
+For `ralph.exit`: `   ✓ resolved` / `   ✗ exhausted` / `   ⤴ escalated`.
+
 ### Meta-actions (Korean and English literal intents)
 
 - **`status` / `상태`** — health check + per-status task counts + 24h cost + top-5 QC leaderboard + active worktrees. Use SQLite queries against `data/app.db`.
 
 - **`tail` / `tail N` / `이벤트` / `방금 뭐 했어`** — `tail -n N data/events.ndjson` (default 30), render as table with timestamp + kind + key payload fields.
 
-- **`stop` / `종료` / `꺼`** — use `TaskStop` (or `kill <pid>`) on the background tasks running `pnpm orchestrator` and `pnpm dashboard`. Confirm both ports free.
+- **`stop` / `종료` / `꺼`** — stop the **orchestrator only** (kill the `pnpm orchestrator` background task or `kill $(lsof -ti:4317)`). **Leave the dashboard running** so the user can still browse history at http://localhost:54317. Confirm: 4317 free, 54317 still up.
+
+- **`stop all` / `전부 종료` / `대시보드도 꺼`** — stop both orchestrator (4317) and dashboard (54317). Confirm both ports free.
+
+- **`stop dashboard` / `대시보드만 꺼`** — stop the dashboard only (rare, mainly for port reclaim).
 
 - **`last` / `마지막` / `최근 결과`** — most recent terminal request: id, commits, cost breakdown, key decisions, handover doc path if any.
 

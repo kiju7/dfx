@@ -92,6 +92,15 @@ async function spawnDev(input: {
     cwd: wt?.path ?? REPO_ROOT,
     prompt: input.brief,
     complexity: input.complexity,
+    onActivity: (a) =>
+      publish('agent.activity', {
+        taskId: task_id,
+        requestId: input.requestId,
+        agentId: input.spec.id,
+        action: a.action,
+        target: a.target,
+        tool: a.tool,
+      }),
   });
 
   queries.costs.record({
@@ -134,7 +143,21 @@ async function runQc(args: {
     'Inspect the changes (git diff main..HEAD inside the cwd) and respond per your output spec.',
   ].join('\n');
 
-  const result = await runAgent({ spec: args.qc, cwd: qcCwd, prompt, complexity: args.target.complexity });
+  const result = await runAgent({
+    spec: args.qc,
+    cwd: qcCwd,
+    prompt,
+    complexity: args.target.complexity,
+    onActivity: (a) =>
+      publish('agent.activity', {
+        taskId: args.target.task_id,
+        requestId: null,
+        agentId: args.qc.id,
+        action: a.action,
+        target: a.target,
+        tool: a.tool,
+      }),
+  });
 
   queries.costs.record({
     task_id: args.target.task_id,

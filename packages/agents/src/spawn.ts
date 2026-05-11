@@ -1,6 +1,17 @@
 import { query, type SDKMessage, type Options } from '@anthropic-ai/claude-agent-sdk';
-import type { AgentSpec, Complexity } from '@agent-forge/shared';
+import {
+  describeToolUse,
+  type AgentSpec,
+  type Complexity,
+  type ActivityAction,
+} from '@agent-forge/shared';
 import { evaluateToolUse } from './hooks.js';
+
+export interface ActivityEvent {
+  action: ActivityAction;
+  target: string;
+  tool: string;
+}
 
 export interface RunOptions {
   spec: AgentSpec;
@@ -9,6 +20,12 @@ export interface RunOptions {
   appendSystem?: string;
   onMessage?: (msg: SDKMessage) => void;
   onToolBlocked?: (toolName: string, reason: string) => void;
+  /**
+   * Fired once per tool_use block emitted by the assistant — gives the
+   * orchestrator (and the dashboard / CLI) a fine-grained view of what
+   * the agent is doing in real time (📂 reading, ✏️ editing, 🐚 running ...).
+   */
+  onActivity?: (a: ActivityEvent) => void;
   resume?: string;
   /**
    * Triage-assessed complexity of the task. When set and AGENT_FORGE_AUTO_TIER
@@ -162,6 +179,24 @@ export async function runAgent(opts: RunOptions): Promise<RunResult> {
           .join('\n')
           .trim();
         if (text) lastAssistantText = text;
+
+        // Surface tool_use blocks as agent.activity events so dashboards /
+        // CLI can render fine-grained progress (📂 reading, ✏️ editing, ...).
+        if (opts.onActivity) {
+          for (const b of blocks) {
+            if (
+              typeof b !== 'object' ||
+              b === null ||
+              (b as { type?: string }).type !== 'tool_use'
+            )
+              continue;
+            const name = (b as { name?: string }).name;
+            const input = (b as { input?: unknown }).input;
+            if (typeof name !== 'string') continue;
+            const described = describeToolUse(name, input);
+            if (described) opts.onActivity(described);
+          }
+        }
       }
     }
     if (message.type === 'result') {
