@@ -38,48 +38,80 @@ You are now in **agent-forge interactive mode**. From this point on, treat every
    - `qc` — explicit quality check / audit
 2. **Draft** a clean title (≤ 80 chars) and body_md (concise: which files/areas, expected outcome, non-obvious constraints). Don't over-explain — agents read the code themselves.
 3. **POST** to `http://127.0.0.1:4317/requests` with the JSON, capture the returned `id`.
-4. **Tail** `data/events.ndjson` in the foreground with an `until` loop, up to 540s. Render events so the user can see WHO is doing WHAT in real time (see "Live rendering" below). Exit when `request.status_changed` reaches `done` or `blocked`.
-5. **Summarize**:
+4. **Print a single live-link line** right away (no formatting block, just a plain line):
+
+   ```
+   🔗 Live: http://localhost:54317/tasks/<id>
+   ```
+
+5. **Stream events with Monitor**, NOT a bash tail loop. Strict rules:
+   - Run exactly **one** Monitor tool on `tail -F /Users/jd-kimkiju/Projects/agent-forge/data/events.ndjson | grep -E '"(requestId|taskId)":"<id>|<known-task-ids>"'` (use a single grep that grows as new task ids appear, or simpler — match the requestId).
+   - Each notification = one line from `events.ndjson`. **Render one short text line per notification** in your reply. Do NOT batch, do NOT include the raw JSON, do NOT call TaskOutput to snapshot.
+   - Render mapping (see emoji table below).
+   - Stop the Monitor when `request.status_changed` reaches `done` or `blocked` (use `stop_pattern` in Monitor with regex like `"request\.status_changed".*"(done|blocked)"`).
+   - Hard cap: 540s. If Monitor times out, print `⌛ timeout — see browser dashboard` and stop.
+
+6. **Summary at end** (single message after Monitor exits):
    - Final status, new commits (`git log --oneline -5`)
    - Total cost (`SELECT SUM(cost_usd) FROM task_costs WHERE request_id='<id>' OR task_id IN (SELECT id FROM tasks WHERE request_id='<id>')`)
    - Findings count (resolved / total)
    - Decisions worth surfacing
-6. **Warn proactively** if cost > $5 or wall-clock > 8 minutes.
 
-#### Live rendering (the bit the user actually watches)
+7. **Warn proactively** if cost > $5 or wall-clock > 8 minutes.
 
-Group events by agent / phase. Use these emojis per agent role:
+#### Line-by-line rendering — strict format
+
+Agent role emojis:
 - triage 🧭 · pm 📋 · frontend 🎨 · backend 🛠 · database 🗄 · devops 🚀
 - daemon ⚙️ · ux ✨ · ai 🤖 · qc 🔍 · orchestrator/ralph 🔁
 
-For each `agent.activity` event, render a single indented line:
-- `action='reading'`      → `   📂 Reading <target>`
-- `action='editing'`      → `   ✏️ Editing <target>`
-- `action='writing'`      → `   📝 Writing <target>`
-- `action='searching'`    → `   🔎 <tool> <target>`
-- `action='running'`      → `   🐚 <target>` (head of Bash command)
-- `action='fetching'`     → `   🌐 <target>`
-- `action='other'`        → `   · <tool> <target>`
+One event → exactly one line. **No code blocks, no bullets, no nesting.** Indent activity lines with three spaces:
 
-When a new task starts (`task.created`), break into a fresh section with the agent's avatar + name as the heading. Example:
+| Event kind                        | Render this single line |
+|---|---|
+| `request.received`                | (skip — already covered by step 4 link line) |
+| `request.status_changed`          | `▶ <to>` (e.g. `▶ executing`) once, but skip `triage→executing` if it's right after task.created |
+| `task.created` (agent X starts)   | `<emoji> <DisplayName>  ▸ <title-short>` (no body) |
+| `task.status_changed` qc→done     | `   ✓ <agent> done` |
+| `task.status_changed` qc→blocked  | `   ⤴ <agent> blocked` |
+| `task.status_changed` qc→failed   | `   ✗ <agent> failed` |
+| `agent.activity` reading          | `   📂 <target>` |
+| `agent.activity` editing          | `   ✏️ <target>` |
+| `agent.activity` writing          | `   📝 <target>` |
+| `agent.activity` searching        | `   🔎 <target>` |
+| `agent.activity` running          | `   🐚 <target>` (Bash head ≤ 60 chars) |
+| `agent.activity` fetching         | `   🌐 <target>` |
+| `agent.activity` other            | `   · <tool>` |
+| `qc.finding`                      | `   ⚠️ <severity>/<category> — <title>` (omit nit) |
+| `ralph.iteration`                 | `🔁 <agent> Ralph iter <N>` |
+| `ralph.exit qc_passed`            | `   ✓ resolved` |
+| `ralph.exit max_iter`             | `   ✗ exhausted` |
+| `ralph.exit aborted`              | `   ⤴ escalated` |
+
+Hard rule: **no JSON, no Markdown headings, no Task Output snapshots, no bash `until` loops in foreground.** Just plain text lines, indented as above. The browser at `http://localhost:54317/tasks/<id>` is the rich view; chat is the lightweight tail.
+
+Noise suppression: same-target reading/searching called 3+ times in <5s → emit only the first; keep a tiny in-memory set and skip duplicates.
+
+End example:
 
 ```
-🎨 Frontend Lead  task abc123
-   📂 Reading apps/dashboard/app/page.tsx
-   ✏️ Editing apps/dashboard/app/globals.css
+🔗 Live: http://localhost:54317/tasks/01KRAMPM95...
+🧭 Triage ▸ direct · frontend · complexity=simple
+🎨 Frontend Lead  ▸ Kanban card hover brightness
+   📂 apps/dashboard/app/globals.css
+   ✏️ apps/dashboard/app/globals.css
    🐚 pnpm --filter @agent-forge/dashboard build
-   ✓ TASK_DONE (52s, 6 turns)
+   ✓ frontend-lead done
+🔍 qc-edgecase  ▸ review
+🔍 qc-ux        ▸ review
+   ⚠️ minor/ui — hardcoded color literals
+🔁 frontend-lead Ralph iter 1
+   ✏️ apps/dashboard/app/globals.css
+   ✓ resolved
+▶ done
 ```
 
-When multiple agents run in parallel (PM wave or QC fan-out), keep their activity blocks visually separated — interleaving is OK if it's chronological, but make sure each line clearly carries the agent's name/emoji so the user can follow.
-
-Suppress noise:
-- Same-file Read called >2× in <5s → collapse to "📂 Reading <target> ×N".
-- Glob/Grep called many times → show first 2 + "...";
-
-For `qc.finding` events: render under the QC agent's section as `⚠️ <severity>/<category> — <title>`.
-For `ralph.iteration`: `🔁 Ralph iter N (finding ...)`.
-For `ralph.exit`: `   ✓ resolved` / `   ✗ exhausted` / `   ⤴ escalated`.
+Final summary message after that (cost / commit / findings).
 
 ### Meta-actions (Korean and English literal intents)
 
