@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 810" font-family="-apple-system, system-ui, 'Helvetica Neue', Arial, sans-serif" font-size="13">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 920" font-family="-apple-system, system-ui, 'Helvetica Neue', Arial, sans-serif" font-size="13">
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
       <path d="M0,0 L0,6 L9,3 z" fill="#5a6577"/>
@@ -21,124 +21,129 @@
       .arrow       { stroke: #5a6577; stroke-width: 1.6; fill: none; }
       .arrow-dash  { stroke: #8a93a3; stroke-width: 1.4; fill: none; stroke-dasharray: 5 3; }
       .branch-lbl  { fill: #5a6577; font-size: 11px; font-style: italic; }
+      .actor-link  { stroke: #81c784; stroke-width: 1; fill: none; stroke-dasharray: 2 4; opacity: 0.6; }
     ]]></style>
   </defs>
 
   <!-- 1. User request (oval) -->
   <ellipse cx="450" cy="40" rx="110" ry="22" class="oval"/>
   <text x="450" y="45" text-anchor="middle" class="label">사용자 요청</text>
-  <path d="M 450,62 L 450,95" class="arrow" marker-end="url(#arrow)"/>
+  <path d="M 450,62 L 450,92" class="arrow" marker-end="url(#arrow)"/>
 
   <!-- 2. Triage -->
-  <rect x="365" y="100" width="170" height="54" rx="8" class="triage"/>
-  <text x="450" y="122" text-anchor="middle" class="label">🎯 Triage</text>
-  <text x="450" y="140" text-anchor="middle" class="sub">Haiku · routing</text>
+  <rect x="365" y="98" width="170" height="54" rx="8" class="triage"/>
+  <text x="450" y="120" text-anchor="middle" class="label">🎯 Triage</text>
+  <text x="450" y="138" text-anchor="middle" class="sub">Haiku · routing</text>
 
-  <!-- Split arrows: direct / lead -->
-  <path d="M 450,154 L 450,180 L 220,180 L 220,205" class="arrow" marker-end="url(#arrow)"/>
-  <path d="M 450,154 L 450,180 L 680,180 L 680,205" class="arrow" marker-end="url(#arrow)"/>
-  <text x="290" y="175" class="branch-lbl">route = direct</text>
-  <text x="540" y="175" class="branch-lbl">route = lead</text>
+  <!-- Split: direct / lead -->
+  <path d="M 450,152 L 450,178 L 215,178 L 215,205" class="arrow" marker-end="url(#arrow)"/>
+  <path d="M 450,152 L 450,178 L 680,178 L 680,205" class="arrow" marker-end="url(#arrow)"/>
+  <text x="285" y="173" class="branch-lbl">route = direct</text>
+  <text x="540" y="173" class="branch-lbl">route = lead</text>
 
-  <!-- 3a. Fast path (direct) -->
-  <rect x="140" y="210" width="160" height="60" rx="8" class="fast"/>
-  <text x="220" y="232" text-anchor="middle" class="label">🚀 fast path</text>
-  <text x="220" y="250" text-anchor="middle" class="sub">single dev, no Tech Lead</text>
+  <!-- 3a. Fast path -->
+  <rect x="135" y="210" width="160" height="60" rx="8" class="fast"/>
+  <text x="215" y="232" text-anchor="middle" class="label">🚀 fast path</text>
+  <text x="215" y="250" text-anchor="middle" class="sub">single dev, no Tech Lead</text>
 
-  <!-- 3b. Tech Lead (모든 모드 — 초기 plan / 재설계 / 사용자문의 / Investigation / Acceptance Review) -->
-  <rect x="570" y="210" width="220" height="120" rx="8" class="lead"/>
+  <!-- 3b. Tech Lead TOP (Modes 1/2/3/5 — Plan & Revise) -->
+  <rect x="560" y="210" width="240" height="130" rx="8" class="lead"/>
   <text x="680" y="232" text-anchor="middle" class="label">📋 Tech Lead</text>
   <text x="680" y="250" text-anchor="middle" class="sub">Mode 1: 초기 plan (코드 read → 분해)</text>
   <text x="680" y="266" text-anchor="middle" class="sub">Mode 2: ask user (의도 모호 시)</text>
   <text x="680" y="282" text-anchor="middle" class="sub">Mode 3: revise (dev SUGGEST_REVISION)</text>
-  <text x="680" y="298" text-anchor="middle" class="sub">Mode 4: Acceptance Review (QC clean 후)</text>
-  <text x="680" y="314" text-anchor="middle" class="sub">Mode 5: Investigation (kind=bug 모호)</text>
+  <text x="680" y="298" text-anchor="middle" class="sub">Mode 5: Investigation (kind=bug 모호)</text>
+  <text x="680" y="320" text-anchor="middle" class="sub" font-style="italic" fill="#558b2f">↺ Mode 4 는 QC 후 다시 호출됨</text>
 
-  <!-- Tech Lead ↔ user (escalation indicator) -->
-  <path d="M 680,210 L 680,180 L 820,180 L 820,40 L 560,40" class="arrow-dash" marker-end="url(#arrow-dashed)"/>
-  <text x="830" y="115" class="branch-lbl" transform="rotate(0)">ask user</text>
+  <!-- Tech Lead → user (ask user, dashed) -->
+  <path d="M 680,210 L 680,178 L 830,178 L 830,40 L 560,40" class="arrow-dash" marker-end="url(#arrow-dashed)"/>
+  <text x="838" y="115" class="branch-lbl">ask user</text>
 
-  <!-- 3c. Investigation Phase (조건부, kind=bug 모호 시) -->
-  <rect x="350" y="350" width="240" height="38" rx="6" class="invest"/>
-  <text x="470" y="373" text-anchor="middle" class="label">🔬 Investigation (조건부)</text>
-  <!-- Tech Lead → Investigation (dashed, 조건부) -->
-  <path d="M 680,330 L 680,348 Q 680,368 590,369" class="arrow-dash" marker-end="url(#arrow-dashed)"/>
-  <!-- Investigation → Tech Lead (REPRO_REPORTs 받고 다시) -->
-  <path d="M 350,369 Q 270,369 270,265 L 570,265" class="arrow-dash" marker-end="url(#arrow-dashed)"/>
-  <text x="280" y="360" class="branch-lbl">REPRO_REPORT</text>
+  <!-- 3c. Investigation Phase (조건부) -->
+  <rect x="350" y="358" width="240" height="40" rx="6" class="invest"/>
+  <text x="470" y="382" text-anchor="middle" class="label">🔬 Investigation (조건부)</text>
+  <path d="M 680,340 L 680,358 Q 680,378 590,378" class="arrow-dash" marker-end="url(#arrow-dashed)"/>
+  <path d="M 350,378 Q 270,378 270,280 L 560,280" class="arrow-dash" marker-end="url(#arrow-dashed)"/>
+  <text x="280" y="368" class="branch-lbl">REPRO_REPORT</text>
 
-  <!-- Merge to devs row (Tech Lead Mode 1/3/4-REJECT → Dev) -->
-  <path d="M 220,270 L 220,410 L 450,410" class="arrow" marker-end="url(#arrow)"/>
-  <path d="M 680,330 L 680,410 L 450,410" class="arrow" marker-end="url(#arrow)"/>
-  <path d="M 450,410 L 450,435" class="arrow" marker-end="url(#arrow)"/>
-  <text x="710" y="395" class="branch-lbl">plan / REJECT fix</text>
+  <!-- Merge to Dev row -->
+  <path d="M 215,270 L 215,415 L 450,415" class="arrow" marker-end="url(#arrow)"/>
+  <path d="M 680,340 L 680,415 L 450,415" class="arrow" marker-end="url(#arrow)"/>
+  <path d="M 450,415 L 450,445" class="arrow" marker-end="url(#arrow)"/>
+  <text x="710" y="402" class="branch-lbl">plan / fix dispatch</text>
 
-  <!-- 4. Dev subagents group -->
-  <rect x="40" y="450" width="820" height="92" rx="6" class="group-bg"/>
-  <text x="450" y="470" text-anchor="middle" class="label">⚒️ Dev subagents · 병렬 (Same-role 직렬화)</text>
+  <!-- 4. Dev row group -->
+  <rect x="40" y="460" width="820" height="92" rx="6" class="group-bg"/>
+  <text x="450" y="480" text-anchor="middle" class="label">⚒️ Dev subagents · 병렬 (Same-role 직렬화)</text>
 
-  <rect x="60"  y="485" width="100" height="42" rx="6" class="dev"/>
-  <text x="110" y="510" text-anchor="middle" class="label">frontend</text>
+  <rect x="60"  y="495" width="100" height="42" rx="6" class="dev"/>
+  <text x="110" y="520" text-anchor="middle" class="label">frontend</text>
+  <rect x="170" y="495" width="100" height="42" rx="6" class="dev"/>
+  <text x="220" y="520" text-anchor="middle" class="label">backend</text>
+  <rect x="280" y="495" width="100" height="42" rx="6" class="dev"/>
+  <text x="330" y="520" text-anchor="middle" class="label">database</text>
+  <rect x="390" y="495" width="100" height="42" rx="6" class="dev"/>
+  <text x="440" y="520" text-anchor="middle" class="label">devops</text>
+  <rect x="500" y="495" width="100" height="42" rx="6" class="dev"/>
+  <text x="550" y="520" text-anchor="middle" class="label">daemon</text>
+  <rect x="610" y="495" width="100" height="42" rx="6" class="dev"/>
+  <text x="660" y="520" text-anchor="middle" class="label">ux</text>
+  <rect x="720" y="495" width="100" height="42" rx="6" class="dev"/>
+  <text x="770" y="520" text-anchor="middle" class="label">ai</text>
 
-  <rect x="170" y="485" width="100" height="42" rx="6" class="dev"/>
-  <text x="220" y="510" text-anchor="middle" class="label">backend</text>
+  <!-- SUGGEST_REVISION feedback (dev → Tech Lead TOP) -->
+  <path d="M 60,515 Q 20,515 20,280 L 560,280" class="arrow-dash" marker-end="url(#arrow-dashed)"/>
+  <text x="25" y="400" class="branch-lbl">SUGGEST_REVISION</text>
 
-  <rect x="280" y="485" width="100" height="42" rx="6" class="dev"/>
-  <text x="330" y="510" text-anchor="middle" class="label">database</text>
+  <!-- Dev → QC -->
+  <path d="M 450,552 L 450,580" class="arrow" marker-end="url(#arrow)"/>
 
-  <rect x="390" y="485" width="100" height="42" rx="6" class="dev"/>
-  <text x="440" y="510" text-anchor="middle" class="label">devops</text>
+  <!-- 5. QC group -->
+  <rect x="100" y="590" width="700" height="92" rx="6" class="group-bg"/>
+  <text x="450" y="610" text-anchor="middle" class="label">🔍 QC reviewers · 4명 병렬 (의도 context 전달)</text>
 
-  <rect x="500" y="485" width="100" height="42" rx="6" class="dev"/>
-  <text x="550" y="510" text-anchor="middle" class="label">daemon</text>
+  <rect x="135" y="625" width="140" height="42" rx="6" class="qc"/>
+  <text x="205" y="650" text-anchor="middle" class="label">edgecase</text>
+  <rect x="290" y="625" width="140" height="42" rx="6" class="qc"/>
+  <text x="360" y="650" text-anchor="middle" class="label">security</text>
+  <rect x="445" y="625" width="140" height="42" rx="6" class="qc"/>
+  <text x="515" y="650" text-anchor="middle" class="label">perf</text>
+  <rect x="600" y="625" width="140" height="42" rx="6" class="qc"/>
+  <text x="670" y="650" text-anchor="middle" class="label">ux</text>
 
-  <rect x="610" y="485" width="100" height="42" rx="6" class="dev"/>
-  <text x="660" y="510" text-anchor="middle" class="label">ux</text>
+  <!-- Ralph 수렴 loop: QC findings → Dev (right side) -->
+  <path d="M 800,645 Q 870,645 870,515 L 820,515" class="arrow-dash" marker-end="url(#arrow-dashed)"/>
+  <text x="800" y="582" text-anchor="end" class="branch-lbl">↻ Ralph 수렴 · findings → dev (fix → re-QC)</text>
+  <text x="800" y="597" text-anchor="end" class="branch-lbl">findings 0 까지 · 동일 2회 = STUCK</text>
 
-  <rect x="720" y="485" width="100" height="42" rx="6" class="dev"/>
-  <text x="770" y="510" text-anchor="middle" class="label">ai</text>
+  <!-- QC clean → Tech Lead BOTTOM (short straight arrow) -->
+  <path d="M 450,682 L 450,712" class="arrow" marker-end="url(#arrow)"/>
+  <text x="460" y="703" class="branch-lbl">QC clean</text>
 
-  <!-- SUGGEST_REVISION feedback loop (dev → Tech Lead) -->
-  <path d="M 60,505 Q 20,505 20,265 L 570,265" class="arrow-dash" marker-end="url(#arrow-dashed)"/>
-  <text x="25" y="385" class="branch-lbl">SUGGEST_REVISION</text>
+  <!-- 6. Tech Lead BOTTOM (Mode 4 — Acceptance Review) -->
+  <rect x="280" y="720" width="340" height="70" rx="8" class="lead"/>
+  <text x="450" y="742" text-anchor="middle" class="label">📋 Tech Lead — Mode 4 (Acceptance Review)</text>
+  <text x="450" y="760" text-anchor="middle" class="sub">의도 충족 / 일관성 / PR-review 품질 검증</text>
+  <text x="450" y="776" text-anchor="middle" class="sub">↺ same agent · APPROVE 까지 Ralph 수렴 패턴</text>
 
-  <!-- Arrow to QC -->
-  <path d="M 450,542 L 450,572" class="arrow" marker-end="url(#arrow)"/>
+  <!-- "same agent" 가는 연결선 (top Tech Lead → bottom Tech Lead, 우측 점선) -->
+  <path d="M 800,275 Q 870,275 870,750 L 620,750" class="actor-link"/>
+  <text x="875" y="510" class="branch-lbl" transform="rotate(-90 875,510)" fill="#558b2f">same agent</text>
 
-  <!-- 5. QC reviewers group -->
-  <rect x="100" y="580" width="700" height="92" rx="6" class="group-bg"/>
-  <text x="450" y="600" text-anchor="middle" class="label">🔍 QC reviewers · 4명 병렬 (의도 context 전달)</text>
+  <!-- Tech Lead BOTTOM → Dev (REJECT, left side) -->
+  <path d="M 280,755 Q 30,755 30,515 L 60,515" class="arrow-dash" marker-end="url(#arrow-dashed)"/>
+  <text x="40" y="640" class="branch-lbl">REJECT</text>
+  <text x="40" y="655" class="branch-lbl">(fix_directives → fix)</text>
 
-  <rect x="135" y="615" width="140" height="42" rx="6" class="qc"/>
-  <text x="205" y="640" text-anchor="middle" class="label">edgecase</text>
-
-  <rect x="290" y="615" width="140" height="42" rx="6" class="qc"/>
-  <text x="360" y="640" text-anchor="middle" class="label">security</text>
-
-  <rect x="445" y="615" width="140" height="42" rx="6" class="qc"/>
-  <text x="515" y="640" text-anchor="middle" class="label">perf</text>
-
-  <rect x="600" y="615" width="140" height="42" rx="6" class="qc"/>
-  <text x="670" y="640" text-anchor="middle" class="label">ux</text>
-
-  <!-- Ralph 수렴 loop-back: QC findings → Dev -->
-  <path d="M 800,635 Q 870,635 870,505 L 820,505" class="arrow-dash" marker-end="url(#arrow-dashed)"/>
-  <text x="800" y="570" text-anchor="end" class="branch-lbl">↻ Ralph 수렴 — findings → dev (fix → re-QC)</text>
-  <text x="800" y="585" text-anchor="end" class="branch-lbl">findings 0 까지 · 동일 2회 = STUCK</text>
-
-  <!-- QC clean → Tech Lead (back UP, Mode 4 review 호출) -->
-  <path d="M 800,635 Q 890,635 890,305 L 790,305" class="arrow-dash" marker-end="url(#arrow-dashed)"/>
-  <text x="895" y="500" class="branch-lbl" transform="rotate(-90 895,500)">QC clean → Tech Lead (Mode 4)</text>
-
-  <!-- Tech Lead → Final (APPROVE, 왼쪽 큰 곡선) -->
-  <path d="M 570,280 Q 30,280 30,725 L 290,725" class="arrow" marker-end="url(#arrow)"/>
-  <text x="40" y="425" class="branch-lbl">APPROVE → Final</text>
+  <!-- Tech Lead BOTTOM → Final (APPROVE, short straight) -->
+  <path d="M 450,790 L 450,818" class="arrow" marker-end="url(#arrow)"/>
+  <text x="460" y="810" class="branch-lbl">APPROVE</text>
 
   <!-- 7. Final summary (oval) -->
-  <ellipse cx="450" cy="725" rx="160" ry="22" class="final"/>
-  <text x="450" y="730" text-anchor="middle" class="label">🏁 consolidated summary + 📄 user report</text>
+  <ellipse cx="450" cy="840" rx="170" ry="22" class="final"/>
+  <text x="450" y="845" text-anchor="middle" class="label">🏁 consolidated summary + 📄 user report</text>
 
-  <!-- Footer caption -->
-  <text x="450" y="775" text-anchor="middle" class="sub">병렬 = 같은 어시스턴트 메시지의 Task 호출 N 개 · 외부 서비스 없음 (Claude Code 네이티브)</text>
-  <text x="450" y="791" text-anchor="middle" class="sub">model: Triage = haiku · Tech Lead + Dev = opus · QC = sonnet · audit log: _workspace/&lt;run-id&gt;/</text>
+  <!-- Footer -->
+  <text x="450" y="888" text-anchor="middle" class="sub">병렬 = 같은 어시스턴트 메시지의 Task 호출 N 개 · 외부 서비스 없음 (Claude Code 네이티브)</text>
+  <text x="450" y="904" text-anchor="middle" class="sub">model: Triage = haiku · Tech Lead + Dev = opus · QC = sonnet · audit log: _workspace/&lt;run-id&gt;/</text>
 </svg>
