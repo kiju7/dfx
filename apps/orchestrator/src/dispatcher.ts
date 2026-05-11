@@ -146,10 +146,25 @@ function pickFollowupRole(category: string): string {
 }
 
 export async function handleRequest(input: DispatchInput): Promise<void> {
-  // Resolve targets
-  const targets: AgentSpec[] = input.triage.targets
+  // Resolve targets; in Phase 1, if PM is requested but no PM agent is registered,
+  // fall back to the frontend dev agent so the pipeline still moves.
+  const resolved = input.triage.targets
     .map((role) => registry.firstByRole(role))
     .filter((s): s is AgentSpec => Boolean(s));
+
+  let targets: AgentSpec[] = resolved;
+  if (targets.length === 0) {
+    const fallback = registry.firstByRole('frontend');
+    if (fallback) {
+      queries.messages.append({
+        task_id: null,
+        sender_kind: 'system',
+        sender_id: 'orchestrator',
+        body_md: `Triage targeted [${input.triage.targets.join(',')}] but no matching agent is registered. Falling back to ${fallback.id}.`,
+      });
+      targets = [fallback];
+    }
+  }
 
   if (targets.length === 0) {
     queries.requests.setStatus(input.requestId, 'blocked');

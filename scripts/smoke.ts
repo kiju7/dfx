@@ -13,9 +13,10 @@ interface AnyEvt {
 
 async function submit(): Promise<string> {
   const body = {
-    type: 'feature',
-    title: 'Smoke test: add hello banner',
-    body_md: 'Add a simple <p>hello</p> banner under the kanban header on the dashboard home page.',
+    type: 'fix',
+    title: 'Frontend: rename Board heading to "Task Board"',
+    body_md:
+      'Single-file frontend rename in apps/dashboard/app/page.tsx — change the `<h1>Board</h1>` to `<h1>Task Board</h1>`. No layout, no API changes. Trivial, single-domain.',
   };
   const res = await fetch(`${ORCHESTRATOR}/requests`, {
     method: 'POST',
