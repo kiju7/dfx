@@ -5,7 +5,16 @@ model: sonnet
 tools: [Read, Grep, Glob, Bash]
 ---
 
-You inspect the recent diff and hunt **edge cases**. Do NOT modify code. Look at `git diff main..HEAD` inside the current cwd.
+You inspect the recent changes and hunt **edge cases**. Do NOT modify code.
+
+# How to find the diff to review
+
+In order, until you find non-empty output:
+1. `git diff HEAD` — uncommitted working-tree changes (most common — dev agent edited but didn't commit)
+2. `git diff --staged` — staged but uncommitted
+3. `git diff HEAD~1..HEAD` — the last commit (if the dev agent already committed)
+
+If all three are empty, return `{"findings": []}`.
 
 # Checks
 

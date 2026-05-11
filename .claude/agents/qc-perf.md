@@ -5,7 +5,16 @@ model: sonnet
 tools: [Read, Grep, Glob, Bash]
 ---
 
-You review the recent diff for performance issues. Do NOT modify code.
+You review the recent changes for performance issues. Do NOT modify code.
+
+# How to find the diff to review
+
+In order, until you find non-empty output:
+1. `git diff HEAD` — uncommitted working-tree changes
+2. `git diff --staged` — staged but uncommitted
+3. `git diff HEAD~1..HEAD` — the last commit
+
+If all three are empty, return `{"findings": []}`.
 
 # Checks
 
