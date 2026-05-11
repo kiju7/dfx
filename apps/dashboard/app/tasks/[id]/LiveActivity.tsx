@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { getAgentMeta } from '../../../lib/agent-meta';
 
 interface ActivityEntry {
@@ -23,17 +23,22 @@ const ACTION_ICON: Record<string, string> = {
   other: '·',
 };
 
-const MAX_ENTRIES = 40;
+const MAX_ENTRIES = 200;        // memory cap; the panel itself scrolls
+const PANEL_MAX_HEIGHT = 360;   // px — start scrolling beyond this
 
-function trimTarget(target: string, max = 90): string {
+function trimTarget(target: string, max = 120): string {
   if (target.length <= max) return target;
   return target.slice(0, max - 1) + '…';
 }
 
 export default function LiveActivity({ taskId }: { taskId: string }) {
+  // Newest-first list. We render in this order (so latest stays visible at top
+  // when the user is scrolled to top). The scrollbar starts at top by default.
   const [entries, setEntries] = useState<ActivityEntry[]>([]);
   const [live, setLive] = useState(false);
   const seenIds = useRef<Set<string>>(new Set());
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const stuckToTopRef = useRef<boolean>(true);
 
   useEffect(() => {
     const es = new EventSource('/api/events');
@@ -46,24 +51,33 @@ export default function LiveActivity({ taskId }: { taskId: string }) {
         if (evt.payload?.taskId !== taskId) return;
         if (seenIds.current.has(evt.id)) return;
         seenIds.current.add(evt.id);
-        setEntries((prev) => {
-          const next: ActivityEntry = {
-            id: evt.id,
-            ts: evt.ts,
-            agentId: evt.payload.agentId,
-            action: evt.payload.action,
-            target: evt.payload.target ?? '',
-            tool: evt.payload.tool,
-          };
-          const combined = [next, ...prev];
-          return combined.slice(0, MAX_ENTRIES);
-        });
+        const next: ActivityEntry = {
+          id: evt.id,
+          ts: evt.ts,
+          agentId: evt.payload.agentId,
+          action: evt.payload.action,
+          target: evt.payload.target ?? '',
+          tool: evt.payload.tool,
+        };
+        setEntries((prev) => [next, ...prev].slice(0, MAX_ENTRIES));
       } catch {
         /* ignore */
       }
     };
     return () => es.close();
   }, [taskId]);
+
+  // Track whether the user is sticking to the latest (scrollTop near 0 since
+  // we render newest at top). When new entries arrive while stuck, keep the
+  // viewport pinned to top; otherwise leave their scroll position alone.
+  const onScroll = (ev: React.UIEvent<HTMLDivElement>) => {
+    stuckToTopRef.current = ev.currentTarget.scrollTop <= 8;
+  };
+  useLayoutEffect(() => {
+    if (stuckToTopRef.current && scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+    }
+  }, [entries.length]);
 
   if (entries.length === 0) {
     return (
@@ -73,54 +87,136 @@ export default function LiveActivity({ taskId }: { taskId: string }) {
     );
   }
 
-  // group consecutive entries by agentId so the visual reads like "X is doing
-  // these things" rather than every line repeating the agent header.
-  type Group = { agentId: string; items: ActivityEntry[] };
-  const groups: Group[] = [];
+  // 1) Collapse identical consecutive entries (same agent + action + target)
+  //    into a single visual row with a ×N badge. "Identical" really means
+  //    identical — the offset/limit hint added in describeToolUse() makes
+  //    different file ranges appear as different targets.
+  type CollapsedItem = ActivityEntry & { count: number; latestTs: number };
+  const collapsed: CollapsedItem[] = [];
   for (const e of entries) {
-    const last = groups[groups.length - 1];
-    if (last && last.agentId === e.agentId) {
-      last.items.push(e);
+    const last = collapsed[collapsed.length - 1];
+    if (
+      last &&
+      last.agentId === e.agentId &&
+      last.action === e.action &&
+      last.target === e.target
+    ) {
+      last.count += 1;
+      // latestTs stays the oldest in this collapsed run (since we render
+      // newest-first, the first one we encountered IS the latest). Don't
+      // touch it.
     } else {
-      groups.push({ agentId: e.agentId, items: [e] });
+      collapsed.push({ ...e, count: 1, latestTs: e.ts });
     }
   }
 
+  // 2) Group consecutive collapsed items by agent so the visual reads like
+  //    "Frontend Lead is doing X, Y, Z".
+  type Group = { agentId: string; items: CollapsedItem[] };
+  const groups: Group[] = [];
+  for (const e of collapsed) {
+    const last = groups[groups.length - 1];
+    if (last && last.agentId === e.agentId) last.items.push(e);
+    else groups.push({ agentId: e.agentId, items: [e] });
+  }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {groups.map((g, gi) => {
-        const meta = getAgentMeta(g.agentId);
-        return (
-          <div key={`${g.agentId}-${gi}`} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-            <span className={`avatar sm role-${meta.role}`} title={meta.displayName}>
-              {meta.initial}
-            </span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg)' }}>
-                {meta.emoji && <span style={{ marginRight: 4 }}>{meta.emoji}</span>}
-                {meta.displayName}
-                <span className="role-tag" style={{
-                  fontSize: 10, fontWeight: 500, padding: '1px 6px', borderRadius: 4,
-                  marginLeft: 8, background: 'var(--bg-sunken)', color: 'var(--fg-muted)',
-                }}>{meta.role}</span>
-              </div>
-              <div style={{ fontFamily: '"SF Mono", Menlo, monospace', fontSize: 12, color: 'var(--fg-muted)', marginTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {g.items.map((it) => (
-                  <div key={it.id} style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
-                    <span style={{ width: 16 }}>{ACTION_ICON[it.action] ?? '·'}</span>
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {trimTarget(it.target)}
-                    </span>
-                    <span style={{ color: 'var(--fg-subtle)', marginLeft: 'auto', flexShrink: 0 }}>
-                      {new Date(it.ts).toLocaleTimeString()}
-                    </span>
-                  </div>
-                ))}
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <span style={{ fontSize: 11, color: 'var(--fg-muted)' }}>
+          {entries.length} events · newest first
+        </span>
+        <span style={{ fontSize: 11, color: live ? 'var(--st-done)' : 'var(--fg-subtle)' }}>
+          {live ? '● live' : '○ offline'}
+        </span>
+      </div>
+
+      <div
+        ref={scrollRef}
+        onScroll={onScroll}
+        style={{
+          maxHeight: PANEL_MAX_HEIGHT,
+          overflowY: 'auto',
+          paddingRight: 6,
+          scrollbarGutter: 'stable',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 14,
+        }}
+      >
+        {groups.map((g, gi) => {
+          const meta = getAgentMeta(g.agentId);
+          return (
+            <div key={`${g.agentId}-${gi}`} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              <span className={`avatar sm role-${meta.role}`} title={meta.displayName}>
+                {meta.initial}
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg)' }}>
+                  {meta.emoji && <span style={{ marginRight: 4 }}>{meta.emoji}</span>}
+                  {meta.displayName}
+                  <span
+                    className="role-tag"
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 500,
+                      padding: '1px 6px',
+                      borderRadius: 4,
+                      marginLeft: 8,
+                      background: 'var(--bg-sunken)',
+                      color: 'var(--fg-muted)',
+                    }}
+                  >
+                    {meta.role}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    fontFamily: '"SF Mono", Menlo, monospace',
+                    fontSize: 12,
+                    color: 'var(--fg-muted)',
+                    marginTop: 4,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 2,
+                  }}
+                >
+                  {g.items.map((it) => (
+                    <div key={it.id} style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                      <span style={{ width: 16, flexShrink: 0 }}>{ACTION_ICON[it.action] ?? '·'}</span>
+                      <span
+                        title={it.target}
+                        style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                      >
+                        {trimTarget(it.target)}
+                      </span>
+                      {it.count > 1 && (
+                        <span
+                          style={{
+                            flexShrink: 0,
+                            fontSize: 10,
+                            fontWeight: 600,
+                            padding: '0 6px',
+                            borderRadius: 999,
+                            background: 'var(--bg-sunken)',
+                            color: 'var(--fg-muted)',
+                          }}
+                          title={`${it.count}회 연속 반복`}
+                        >
+                          ×{it.count}
+                        </span>
+                      )}
+                      <span style={{ color: 'var(--fg-subtle)', marginLeft: 'auto', flexShrink: 0 }}>
+                        {new Date(it.ts).toLocaleTimeString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })}
-    </div>
+          );
+        })}
+      </div>
+    </>
   );
 }

@@ -102,19 +102,30 @@ export function describeToolUse(
   let target = '';
   const obj = (input && typeof input === 'object' ? (input as Record<string, unknown>) : {});
 
-  // File-touching tools — surface the path.
+  // File-touching tools — surface the path (+ offset/limit hint so consecutive
+  // Reads on the same file don't look identical when they're really reading
+  // different ranges).
   for (const key of FILE_PATH_KEYS) {
     const v = obj[key];
     if (typeof v === 'string' && v.length > 0) {
       target = v;
+      const offset = typeof obj['offset'] === 'number' ? obj['offset'] : undefined;
+      const limit  = typeof obj['limit']  === 'number' ? obj['limit']  : undefined;
+      if (offset !== undefined || limit !== undefined) {
+        target += ` [@${offset ?? 0}${limit !== undefined ? `:${limit}` : ''}]`;
+      }
       break;
     }
   }
 
-  // Search tools — surface the pattern.
+  // Search tools — surface the pattern (+ optional path scope).
   if (!target && (toolName === 'Glob' || toolName === 'Grep')) {
-    const pat = obj['pattern'];
-    if (typeof pat === 'string') target = pat;
+    const pat  = obj['pattern'];
+    const path = obj['path'];
+    if (typeof pat === 'string') {
+      target = pat;
+      if (typeof path === 'string' && path.length > 0) target += ` in ${path}`;
+    }
   }
 
   // Bash — surface a command head.

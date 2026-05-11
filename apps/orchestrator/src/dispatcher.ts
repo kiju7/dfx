@@ -284,6 +284,13 @@ async function processDevRun(input: { requestId: string; title: string; run: Dev
     return;
   }
 
+  // QC caught actionable findings → flip the task back from 'qc' to
+  // 'in_progress' for the duration of Ralph rounds. Visually this moves the
+  // card from the QC column to the In-progress column on the kanban, which is
+  // what users expect — Ralph is actively writing code again.
+  queries.tasks.setStatus(run.task_id, 'in_progress');
+  publish('task.status_changed', { taskId: run.task_id, from: 'qc', to: 'in_progress' });
+
   for (const f of findings) {
     await enterRalphLoop({
       requestId: input.requestId,
@@ -293,10 +300,11 @@ async function processDevRun(input: { requestId: string; title: string; run: Dev
       complexity: run.complexity,
     });
   }
-  // Single terminal transition after all Ralph rounds — Ralph itself no longer
-  // flips the task status so multi-finding loops stay quiet.
+
+  // Terminal transition after all Ralph rounds. Ralph itself no longer flips
+  // the task status so multi-finding loops stay quiet.
   queries.tasks.setStatus(run.task_id, 'done');
-  publish('task.status_changed', { taskId: run.task_id, from: 'qc', to: 'done' });
+  publish('task.status_changed', { taskId: run.task_id, from: 'in_progress', to: 'done' });
 }
 
 function resolveTargetSpecs(roles: AgentRole[]): AgentSpec[] {
