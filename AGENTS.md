@@ -45,3 +45,7 @@ Read this before classifying or routing a request.
 - 2026-05-11T01:30:39.386Z — Ralph fix (isolated): ux/minor resolved by pm-lead in 1 iter.
 
 - 2026-05-11T01:30:55.871Z — Ralph fix (isolated): ux/minor resolved by pm-lead in 1 iter.
+
+- 2026-05-11T01:37:40.181Z — Ralph fix: a11y/major resolved by frontend-lead in 1 iter.
+
+- 2026-05-11T01:38:26.615Z — Ralph fix: ui/minor resolved by frontend-lead in 1 iter.
