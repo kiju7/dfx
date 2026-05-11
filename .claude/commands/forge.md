@@ -1,24 +1,41 @@
 ---
-description: Help — list all agent-forge commands and the typical flow
-argument-hint: ""
+description: Enter agent-forge interactive mode — boot the system, then treat every following message as a request
+argument-hint: "[optional first request]"
 ---
 
-List the agent-forge slash commands available in this project and the typical usage flow. Don't run anything.
+You are now in **agent-forge interactive mode**. From this point on, treat every subsequent user message in this session as a description of a task to submit to agent-forge, unless it's an obvious meta-command (e.g. "stop", "status", "show last", "switch model"). The user does NOT need to prefix follow-up messages with any slash command.
 
-Commands:
+Steps for THIS message only:
 
-- `/forge-start`  — boot orchestrator + dashboard (Opus 4.7 for dev/QC, Haiku for triage)
-- `/forge-stop`   — shut down both servers
-- `/forge-submit <text>` — submit a request in natural language; I'll classify it, POST it, and tail to completion
-- `/forge-status` — health + recent requests + cost totals + leaderboard
-- `/forge-tail [N]` — show last N raw SSE events
+1. **Boot if needed.**
+   - `curl -sf http://127.0.0.1:4317/health` and `curl -sf http://127.0.0.1:3000/`.
+   - If either is down, start them as background processes:
+     - `cd /Users/jd-kimkiju/Projects/agent-forge && AGENT_FORGE_MODEL=claude-opus-4-7 pnpm orchestrator`
+     - `cd /Users/jd-kimkiju/Projects/agent-forge && pnpm dashboard`
+   - Poll until both respond.
 
-Typical flow:
+2. **Welcome the user** with a short status:
+   ```
+   agent-forge ready · Opus 4.7 (dev/QC) · http://localhost:3000
+   ```
+   Plus a one-line hint: "Describe the task in any message and I'll submit it; say 'status' / 'stop' / 'tail' / 'last' / 'switch to sonnet' for meta-actions."
 
-1. `/forge-start`
-2. open http://localhost:3000 (board) and http://localhost:3000/decisions (rationale log) in a browser
-3. `/forge-submit "change the kanban card hover color to brighten slightly"`
-4. watch the events; when done, review the commit and cost
-5. `/forge-stop` when done
+3. **Handle the first request** in `$ARGUMENTS` if non-empty: treat it as a task description, classify, submit, tail to completion, and summarize (cost / commits / findings). If empty, just wait.
 
-Cost note: Opus 4.7 dev/QC is ~5× Sonnet — a single PM-breakdown feature can run $5–15. Use `/forge-status` to monitor spend; stop and switch to Sonnet (unset `AGENT_FORGE_MODEL`) if you want cheaper runs.
+For every subsequent user turn while this mode is active:
+
+- **Task descriptions** (default) — classify into `bug|feature|qc|fix`, draft title + body_md, POST to `http://127.0.0.1:4317/requests`, tail `data/events.ndjson` for that requestId until `request.status_changed` hits `done` or `blocked`, then summarize commits + cost + findings.
+
+- **Meta-actions** — recognize these literal intents (Korean and English):
+  - "status" / "상태" → run the `/forge-status` flow
+  - "tail" / "이벤트" / "방금 뭐 했어" → tail last 30 events
+  - "stop" / "종료" / "꺼" → kill background processes (`TaskStop`), report ports free
+  - "last" / "마지막" / "최근 결과" → show the last terminal request: id, commits, cost, key decisions
+  - "switch to sonnet" / "소넷으로" → tell the user to `/forge-stop`, then start a new session without `AGENT_FORGE_MODEL` set (or run start without the env var). Do not silently change models mid-stream.
+  - "help" / "도움" → list the meta-actions briefly.
+
+- **Genuinely ambiguous messages** — if you can't tell whether something is a task or a meta-action (e.g. a single word, or a question), ask the user "task로 받을까요, status/stop 같은 거 의도하셨나요?" once instead of guessing.
+
+Warn proactively if a single request's running cost exceeds $5 or wall-clock exceeds 8 minutes.
+
+Stay in interactive mode until the user says stop / 끝 / exit, or the conversation moves to obviously unrelated topics.
