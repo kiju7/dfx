@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "kiju7-agent-forge",
+  "owner": {
+    "name": "kiju7",
+    "url": "https://github.com/kiju7"
+  },
+  "plugins": [
+    {
+      "id": "agent-forge",
+      "name": "Agent Forge",
+      "description": "Multi-agent engineering pipeline that runs natively inside Claude Code (/forge → triage → PM → parallel devs → 4 QC reviewers → Ralph Loop auto-fix).",
+      "source": {
+        "type": "local",
+        "path": "."
+      }
+    }
+  ]
+}

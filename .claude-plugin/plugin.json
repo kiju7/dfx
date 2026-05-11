@@ -1,8 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "agent-forge",
-  "version": "0.2.0",
-  "description": "Multi-agent engineering pipeline that runs natively inside Claude Code. /forge triages a request, breaks it down (PM), dispatches specialist devs in parallel (frontend/backend/database/devops/daemon/ux/ai), runs 4 QC reviewers (edgecase/security/perf/ux), and auto-fixes findings — all via Task-tool subagents in a single session. No external services, no DB, no dashboard.",
+  "version": "0.3.0",
+  "description": "Multi-agent engineering pipeline that runs natively inside Claude Code. /forge triages a request, decomposes it via PM if multi-domain, dispatches specialist devs in parallel (frontend/backend/database/devops/daemon/ux/ai), runs 4 QC reviewers (edgecase/security/perf/ux), and runs a real Ralph Loop that fixes findings until clean. All via Task-tool subagents in a single session — no external services, no DB, no dashboard.",
   "author": {
     "name": "kiju7",
     "url": "https://github.com/kiju7"
@@ -15,29 +15,12 @@
   "license": "MIT",
   "keywords": [
     "claude-code",
+    "claude-code-plugin",
     "claude-code-skill",
     "claude-code-subagents",
     "multi-agent",
     "orchestration",
-    "engineering-automation",
-    "qc",
-    "ralph-loop"
-  ],
-  "engines": {
-    "claude-code": ">=2.0"
-  },
-
-  "//commands": "Claude Code auto-discovers .claude/commands/*.md. /forge is the entry point — it invokes the 'forge' skill which drives the Task-tool pipeline.",
-  "commands": "./.claude/commands/",
-
-  "//agents": "13 Claude Code subagents (1 triage, 1 PM, 7 devs, 4 QC). Loaded via Claude Code's native subagent discovery at .claude/agents/*.md. Each file uses YAML frontmatter (name/description/model/tools) + prompt body.",
-  "agents": "./.claude/agents/",
-
-  "//skills": "Skill that drives the pipeline orchestration logic. The /forge command invokes this skill, which then spawns subagents via the Task tool.",
-  "skills": "./.claude/skills/",
-
-  "//install": "Native mode has no install step — clone the repo (or copy .claude/) and Claude Code picks up commands / agents / skills automatically. legacy/ contains the previous external orchestrator + Next.js dashboard for reference.",
-  "install": {
-    "type": "none"
-  }
+    "ralph-loop",
+    "qc"
+  ]
 }

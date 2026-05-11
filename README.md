@@ -55,13 +55,39 @@
 
 ## 설치
 
-### 사전 요구사항
+**사전 요구사항**: Claude Code 2.0+ ([docs.claude.com/claude-code](https://docs.claude.com/claude-code)). 그 외 의존성 없음 — 외부 데몬·DB·Node 런타임 모두 불필요.
 
-- **Claude Code** 2.0+ ([docs.claude.com/claude-code](https://docs.claude.com/claude-code))
-- **Git** (worktree 안 씀, 일반 git diff 사용)
-- Node.js 가 필요한 외부 서비스는 **없습니다** (legacy 디렉토리에 옛 시스템이 보존되어 있긴 함).
+### 한 번에 설치 (Claude Code 안에서 두 줄)
 
-### 방법 ① — 글로벌 설치 (어느 프로젝트에서든 `/forge` 가능)
+```
+/plugin marketplace add kiju7/agent-forge
+/plugin install agent-forge@kiju7-agent-forge
+```
+
+또는 GUI 로: `/plugin` → **Discover** 탭 → `agent-forge` 선택 → Install.
+
+설치 위치 (스코프) 선택지:
+- **user** (기본·권장) — `~/.claude/plugins/` 어느 프로젝트에서든 `/forge` 가능
+- **project** — `.claude/settings.json` 에 박혀 팀과 공유
+- **local** — 본인만, 이 프로젝트에서만
+
+### 업데이트 / 제거
+
+```
+/plugin marketplace update kiju7-agent-forge   # 새 버전 동기화
+/plugin uninstall agent-forge                  # 제거
+```
+
+### 동작 확인
+
+```
+$ claude
+> /forge "현재 디렉토리 구조 한 줄로 요약해줘"
+```
+
+`🎯 Triage → ... → 🏁 done` 식의 출력이 한두 줄씩 떨어지면 성공.
+
+### (선택) 수동 설치 — 마켓플레이스 통하지 않고 직접 복사
 
 ```bash
 git clone https://github.com/kiju7/agent-forge.git /tmp/agent-forge
@@ -72,28 +98,7 @@ cp -r /tmp/agent-forge/.claude/skills/forge   ~/.claude/skills/
 rm -rf /tmp/agent-forge
 ```
 
-이게 끝입니다. Claude Code 가 다음 부팅 시 자동으로 모두 인식합니다.
-
-### 방법 ② — 프로젝트 로컬 (해당 프로젝트에서만 동작)
-
-```bash
-cd <your-project>
-git clone https://github.com/kiju7/agent-forge.git /tmp/agent-forge
-mkdir -p .claude
-cp -r /tmp/agent-forge/.claude/* .claude/
-rm -rf /tmp/agent-forge
-```
-
-`.claude/` 를 커밋해 두면 팀원이 같은 환경을 그대로 씁니다.
-
-### 동작 확인
-
-```
-$ claude
-> /forge "현재 디렉토리 구조 한 줄로 요약해줘"
-```
-
-triage → (간단한 요청이라 fast path) → 한두 줄 결과가 떨어지면 성공.
+내부망·오프라인 환경에서 유용해요.
 
 ---
 
