@@ -160,7 +160,7 @@ export default function LiveActivity({
         {status === 'done' ? (
           <span style={{ fontSize: 11, color: 'var(--fg-subtle)' }}>● done</span>
         ) : (
-          <span style={{ fontSize: 11, color: live ? 'var(--st-done)' : 'var(--fg-subtle)' }}>
+          <span role="status" style={{ fontSize: 11, color: live ? 'var(--st-done)' : 'var(--fg-subtle)' }}>
             {live ? '● live' : '○ offline'}
           </span>
         )}
@@ -169,6 +169,8 @@ export default function LiveActivity({
       <div
         ref={scrollRef}
         onScroll={onScroll}
+        aria-live="polite"
+        aria-label="에이전트 활동 로그"
         style={{
           ...scrollStyle,
           paddingRight: 6,
