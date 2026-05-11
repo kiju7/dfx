@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
+import NavLinks from './NavLinks';
 import './globals.css';
 
 export const metadata = {
@@ -13,15 +14,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <header className="topbar">
           <Link href="/" className="brand">agent-forge</Link>
-          <nav>
-            <Link href="/">Board</Link>
-            <Link href="/agents">Agents</Link>
-            <Link href="/decisions">Decisions</Link>
-            <Link href="/handover">Handover</Link>
-            <Link href="/new">+ New request</Link>
-          </nav>
+          <NavLinks />
         </header>
         <main className="main">{children}</main>
+        <footer className="footer">agent-forge v0.1.0</footer>
       </body>
     </html>
   );
