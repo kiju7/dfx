@@ -8,38 +8,9 @@
 
 ## 동작 파이프라인
 
-```
-사용자 요청
-   │
-   ▼
-🧭 Triage  (Haiku · 어디로 보낼지)
-   │
-   ├─ direct ─────────────────┐
-   │                          │
-   └─ lead → 📋 Tech Lead (코드 read → sub-task 분해, 의존성) ──┐
-                                          │
-                                          ▼
-                            ⚒️  병렬 dev subagents
-                            ┌────┬────┬────┬────┬────┬────┬────┐
-                            │ FE │ BE │ DB │ DO │ DA │ UX │ AI │
-                            └────┴────┴────┴────┴────┴────┴────┘
-                                          │
-                                          ▼
-                            🔍 4× QC 병렬 검토
-                            ┌──────────┬──────────┬──────┬──────┐
-                            │ edgecase │ security │ perf │  ux  │
-                            └──────────┴──────────┴──────┴──────┘
-                                          │
-                            findings 있으면 ↻ Ralph Loop
-                            (clean 될 때까지 무한 반복 ·
-                             같은 finding 2회 미해결 = STUCK
-                             모두 STUCK 이면 escalate)
-                                          │
-                                          ▼
-                                   🏁 consolidated summary
-```
+![agent-forge pipeline](docs/pipeline.svg)
 
-**모든 단계가 같은 Claude Code 세션 안에서** `Task` 툴 호출로 실행됩니다. 같은 layer 의 작업은 한 메시지에 여러 Task 호출을 동시에 띄워 **진짜 병렬**로 돌아갑니다.
+**모든 단계가 같은 Claude Code 세션 안에서** `Task` 툴 호출로 실행됩니다. 같은 layer 의 작업은 한 메시지에 여러 Task 호출을 동시에 띄워 **진짜 병렬**로 돌아갑니다. Tech Lead 가 의도 모호함을 감지하면 dev 작업 전에 직접 사용자에게 informed question 을 띄우고, dev 가 Discovery 중 brief 와 코드 충돌을 발견하면 `SUGGEST_REVISION` 으로 Tech Lead 한테 돌아가 재설계됩니다.
 
 ---
 

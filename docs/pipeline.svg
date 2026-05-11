@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 860" font-family="-apple-system, system-ui, 'Helvetica Neue', Arial, sans-serif" font-size="13">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#5a6577"/>
+    </marker>
+    <marker id="arrow-dashed" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#8a93a3"/>
+    </marker>
+    <style><![CDATA[
+      .oval        { fill: #eef1f6; stroke: #5a6577; stroke-width: 1.5; }
+      .triage      { fill: #fff8e1; stroke: #b38600; stroke-width: 1.5; }
+      .lead        { fill: #e8f5e9; stroke: #2e7d32; stroke-width: 1.5; }
+      .fast        { fill: #f5f5f5; stroke: #757575; stroke-width: 1.5; stroke-dasharray: 4 2; }
+      .dev         { fill: #e3f2fd; stroke: #1565c0; stroke-width: 1.5; }
+      .qc          { fill: #fce4ec; stroke: #ad1457; stroke-width: 1.5; }
+      .ralph       { fill: #fff3e0; stroke: #e65100; stroke-width: 1.5; }
+      .final       { fill: #f3e5f5; stroke: #6a1b9a; stroke-width: 1.5; }
+      .group-bg    { fill: none; stroke: #b0b6c0; stroke-width: 1; stroke-dasharray: 3 3; }
+      .label       { fill: #1f2433; font-weight: 600; }
+      .sub         { fill: #4a5364; font-size: 11px; }
+      .arrow       { stroke: #5a6577; stroke-width: 1.6; fill: none; }
+      .arrow-dash  { stroke: #8a93a3; stroke-width: 1.4; fill: none; stroke-dasharray: 5 3; }
+      .branch-lbl  { fill: #5a6577; font-size: 11px; font-style: italic; }
+    ]]></style>
+  </defs>
+
+  <!-- 1. User request (oval) -->
+  <ellipse cx="450" cy="40" rx="110" ry="22" class="oval"/>
+  <text x="450" y="45" text-anchor="middle" class="label">사용자 요청</text>
+  <path d="M 450,62 L 450,95" class="arrow" marker-end="url(#arrow)"/>
+
+  <!-- 2. Triage -->
+  <rect x="365" y="100" width="170" height="54" rx="8" class="triage"/>
+  <text x="450" y="122" text-anchor="middle" class="label">🎯 Triage</text>
+  <text x="450" y="140" text-anchor="middle" class="sub">Haiku · routing</text>
+
+  <!-- Split arrows: direct / lead -->
+  <path d="M 450,154 L 450,180 L 220,180 L 220,205" class="arrow" marker-end="url(#arrow)"/>
+  <path d="M 450,154 L 450,180 L 680,180 L 680,205" class="arrow" marker-end="url(#arrow)"/>
+  <text x="290" y="175" class="branch-lbl">route = direct</text>
+  <text x="540" y="175" class="branch-lbl">route = lead</text>
+
+  <!-- 3a. Fast path (direct) -->
+  <rect x="140" y="210" width="160" height="60" rx="8" class="fast"/>
+  <text x="220" y="232" text-anchor="middle" class="label">🚀 fast path</text>
+  <text x="220" y="250" text-anchor="middle" class="sub">single dev, no Tech Lead</text>
+
+  <!-- 3b. Tech Lead -->
+  <rect x="570" y="210" width="220" height="92" rx="8" class="lead"/>
+  <text x="680" y="232" text-anchor="middle" class="label">📋 Tech Lead</text>
+  <text x="680" y="250" text-anchor="middle" class="sub">코드 read → sub-task 분해</text>
+  <text x="680" y="266" text-anchor="middle" class="sub">의도 모호 시 ↑ user 에게 문의</text>
+  <text x="680" y="282" text-anchor="middle" class="sub">(needs_user · branches)</text>
+
+  <!-- Tech Lead ↔ user (escalation indicator) -->
+  <path d="M 680,210 L 680,180 L 820,180 L 820,40 L 560,40" class="arrow-dash" marker-end="url(#arrow-dashed)"/>
+  <text x="830" y="115" class="branch-lbl" transform="rotate(0)">ask user</text>
+
+  <!-- Merge to devs row -->
+  <path d="M 220,270 L 220,330 L 450,330" class="arrow" marker-end="url(#arrow)"/>
+  <path d="M 680,302 L 680,330 L 450,330" class="arrow" marker-end="url(#arrow)"/>
+  <path d="M 450,330 L 450,355" class="arrow" marker-end="url(#arrow)"/>
+
+  <!-- 4. Dev subagents group -->
+  <rect x="40" y="370" width="820" height="92" rx="6" class="group-bg"/>
+  <text x="450" y="390" text-anchor="middle" class="label">⚒️ Dev subagents · 병렬 (Same-role 직렬화)</text>
+
+  <rect x="60"  y="405" width="100" height="42" rx="6" class="dev"/>
+  <text x="110" y="430" text-anchor="middle" class="label">frontend</text>
+
+  <rect x="170" y="405" width="100" height="42" rx="6" class="dev"/>
+  <text x="220" y="430" text-anchor="middle" class="label">backend</text>
+
+  <rect x="280" y="405" width="100" height="42" rx="6" class="dev"/>
+  <text x="330" y="430" text-anchor="middle" class="label">database</text>
+
+  <rect x="390" y="405" width="100" height="42" rx="6" class="dev"/>
+  <text x="440" y="430" text-anchor="middle" class="label">devops</text>
+
+  <rect x="500" y="405" width="100" height="42" rx="6" class="dev"/>
+  <text x="550" y="430" text-anchor="middle" class="label">daemon</text>
+
+  <rect x="610" y="405" width="100" height="42" rx="6" class="dev"/>
+  <text x="660" y="430" text-anchor="middle" class="label">ux</text>
+
+  <rect x="720" y="405" width="100" height="42" rx="6" class="dev"/>
+  <text x="770" y="430" text-anchor="middle" class="label">ai</text>
+
+  <!-- SUGGEST_REVISION feedback loop (dev → Tech Lead) -->
+  <path d="M 60,425 Q 20,425 20,256 L 570,256" class="arrow-dash" marker-end="url(#arrow-dashed)"/>
+  <text x="25" y="340" class="branch-lbl">SUGGEST_REVISION</text>
+
+  <!-- Arrow to QC -->
+  <path d="M 450,462 L 450,492" class="arrow" marker-end="url(#arrow)"/>
+
+  <!-- 5. QC reviewers group -->
+  <rect x="100" y="500" width="700" height="92" rx="6" class="group-bg"/>
+  <text x="450" y="520" text-anchor="middle" class="label">🔍 QC reviewers · 4명 병렬</text>
+
+  <rect x="135" y="535" width="140" height="42" rx="6" class="qc"/>
+  <text x="205" y="560" text-anchor="middle" class="label">edgecase</text>
+
+  <rect x="290" y="535" width="140" height="42" rx="6" class="qc"/>
+  <text x="360" y="560" text-anchor="middle" class="label">security</text>
+
+  <rect x="445" y="535" width="140" height="42" rx="6" class="qc"/>
+  <text x="515" y="560" text-anchor="middle" class="label">perf</text>
+
+  <rect x="600" y="535" width="140" height="42" rx="6" class="qc"/>
+  <text x="670" y="560" text-anchor="middle" class="label">ux</text>
+
+  <!-- Arrow to Ralph -->
+  <path d="M 450,592 L 450,622" class="arrow" marker-end="url(#arrow)"/>
+
+  <!-- 6. Ralph Loop -->
+  <rect x="270" y="630" width="360" height="88" rx="8" class="ralph"/>
+  <text x="450" y="652" text-anchor="middle" class="label">↻ Ralph Loop</text>
+  <text x="450" y="670" text-anchor="middle" class="sub">findings 가 0 까지 무한 반복</text>
+  <text x="450" y="686" text-anchor="middle" class="sub">동일 finding 2회 연속 미해결 = STUCK</text>
+  <text x="450" y="702" text-anchor="middle" class="sub">모두 STUCK → escalate</text>
+
+  <!-- Ralph loop-back arrow (to QC) -->
+  <path d="M 270,670 Q 75,670 75,556 L 130,556" class="arrow-dash" marker-end="url(#arrow-dashed)"/>
+  <text x="85" y="620" class="branch-lbl">fix → re-QC</text>
+
+  <!-- Arrow to final -->
+  <path d="M 450,718 L 450,748" class="arrow" marker-end="url(#arrow)"/>
+
+  <!-- 7. Final summary (oval) -->
+  <ellipse cx="450" cy="772" rx="140" ry="22" class="final"/>
+  <text x="450" y="777" text-anchor="middle" class="label">🏁 consolidated summary</text>
+
+  <!-- Footer caption -->
+  <text x="450" y="822" text-anchor="middle" class="sub">병렬 = 같은 어시스턴트 메시지의 Task 호출 N 개 · 외부 서비스 없음 (Claude Code 네이티브)</text>
+  <text x="450" y="842" text-anchor="middle" class="sub">model: Triage = haiku · Tech Lead + Dev = opus · QC = sonnet</text>
+</svg>
