@@ -3,13 +3,13 @@ import { queries } from '@agent-forge/db';
 
 export const dynamic = 'force-dynamic';
 
-const kindColors: Record<string, string> = {
-  triage: '#1f3a93',
-  'pm-breakdown': '#5e3b8c',
-  'ralph-route': '#1a472a',
-  escalation: '#7d1f1f',
-  merge: '#3d2e08',
-  other: '#30363d',
+const KIND_META: Record<string, { color: string; bg: string; emoji: string }> = {
+  triage:         { color: '#9a3412', bg: '#fff7ed', emoji: '🧭' },
+  'pm-breakdown': { color: '#6b21a8', bg: '#faf5ff', emoji: '📋' },
+  'ralph-route':  { color: '#166534', bg: '#f0fdf4', emoji: '🔁' },
+  escalation:     { color: '#991b1b', bg: '#fef2f2', emoji: '⚠️' },
+  merge:          { color: '#854d0e', bg: '#fefce8', emoji: '🟢' },
+  other:          { color: '#374151', bg: '#f3f4f6', emoji: '·'  },
 };
 
 export default function DecisionsPage() {
@@ -18,11 +18,11 @@ export default function DecisionsPage() {
   return (
     <>
       <h1>Decisions</h1>
-      <p style={{ color: '#8b949e' }}>
+      <p style={{ color: 'var(--fg-muted)' }}>
         오케스트레이터가 내린 트리아지·라우팅·에스컬레이션 결정의 ADR-lite 로그.
       </p>
       {rows.length === 0 ? (
-        <p>아직 결정된 항목이 없습니다.</p>
+        <div className="empty">아직 결정된 항목이 없습니다.</div>
       ) : (
         <table className="table">
           <thead>
@@ -31,53 +31,71 @@ export default function DecisionsPage() {
               <th>kind</th>
               <th>scope</th>
               <th>title</th>
-              <th>request / task</th>
+              <th>links</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((d) => (
-              <tr key={d.id}>
-                <td>{new Date(d.created_at).toLocaleString()}</td>
-                <td>
-                  <span
-                    style={{
-                      background: kindColors[d.kind] ?? '#30363d',
-                      padding: '2px 6px',
-                      borderRadius: 4,
-                      fontSize: 10,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {d.kind}
-                  </span>
-                </td>
-                <td><code style={{ fontSize: 11 }}>{d.scope}</code></td>
-                <td>
-                  <div>{d.title}</div>
-                  {d.rationale_md && (
-                    <details style={{ marginTop: 4 }}>
-                      <summary style={{ cursor: 'pointer', fontSize: 11, color: '#8b949e' }}>
-                        rationale
-                      </summary>
-                      <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12, marginTop: 4 }}>
-                        {d.rationale_md}
-                      </pre>
-                    </details>
-                  )}
-                </td>
-                <td>
-                  {d.request_id && (
-                    <Link href={`/requests/${d.request_id}`}>r/{d.request_id.slice(-6)}</Link>
-                  )}
-                  {d.task_id && (
-                    <>
-                      {' '}
-                      <Link href={`/tasks/${d.task_id}`}>t/{d.task_id.slice(-6)}</Link>
-                    </>
-                  )}
-                </td>
-              </tr>
-            ))}
+            {rows.map((d) => {
+              const km = KIND_META[d.kind] ?? KIND_META.other!;
+              return (
+                <tr key={d.id}>
+                  <td style={{ color: 'var(--fg-muted)', fontSize: 12 }}>
+                    {new Date(d.created_at).toLocaleString()}
+                  </td>
+                  <td>
+                    <span
+                      style={{
+                        background: km.bg,
+                        color: km.color,
+                        padding: '3px 8px',
+                        borderRadius: 999,
+                        fontSize: 11,
+                        fontWeight: 600,
+                        border: `1px solid ${km.color}33`,
+                      }}
+                    >
+                      {km.emoji} {d.kind}
+                    </span>
+                  </td>
+                  <td><code style={{ fontSize: 11 }}>{d.scope}</code></td>
+                  <td>
+                    <div style={{ fontWeight: 500 }}>{d.title}</div>
+                    {d.rationale_md && (
+                      <details style={{ marginTop: 6 }}>
+                        <summary style={{ cursor: 'pointer', fontSize: 11, color: 'var(--fg-muted)' }}>
+                          rationale 펼치기
+                        </summary>
+                        <pre style={{
+                          whiteSpace: 'pre-wrap',
+                          fontSize: 12,
+                          marginTop: 6,
+                          background: 'var(--bg-sunken)',
+                          padding: 10,
+                          borderRadius: 6,
+                        }}>
+                          {d.rationale_md}
+                        </pre>
+                      </details>
+                    )}
+                  </td>
+                  <td style={{ whiteSpace: 'nowrap' }}>
+                    {d.request_id && (
+                      <Link href={`/requests/${d.request_id}`} style={{ fontSize: 12 }}>
+                        r/{d.request_id.slice(-6)}
+                      </Link>
+                    )}
+                    {d.task_id && (
+                      <>
+                        {' · '}
+                        <Link href={`/tasks/${d.task_id}`} style={{ fontSize: 12 }}>
+                          t/{d.task_id.slice(-6)}
+                        </Link>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}

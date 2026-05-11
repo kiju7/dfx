@@ -20,18 +20,37 @@ export default async function HandoverPage({
   return (
     <>
       <h1>Handover</h1>
-      <p style={{ color: '#8b949e' }}>
+      <p style={{ color: 'var(--fg-muted)' }}>
         매 태스크 완료 시 자동 생성되는 인수인계 문서. 전문 검색은 FTS5 BM25 랭킹 사용.
       </p>
 
-      <form className="form" method="get" style={{ maxWidth: 540, marginBottom: 18 }}>
+      <form method="get" style={{ display: 'flex', gap: 8, maxWidth: 540, marginBottom: 18 }}>
         <input
           name="q"
           defaultValue={q}
           placeholder="검색어 (예: ralph frontend rename)"
           aria-label="search query"
+          style={{
+            flex: 1,
+            background: 'var(--bg-elev)',
+            border: '1px solid var(--border)',
+            color: 'var(--fg)',
+            borderRadius: 8,
+            padding: '10px 14px',
+            fontSize: 14,
+            fontFamily: 'inherit',
+          }}
         />
-        <button type="submit">Search</button>
+        <button type="submit" style={{
+          background: 'var(--accent)',
+          color: 'white',
+          border: 0,
+          padding: '10px 18px',
+          borderRadius: 8,
+          cursor: 'pointer',
+          fontWeight: 600,
+          fontSize: 14,
+        }}>Search</button>
       </form>
 
       {q && (
@@ -40,7 +59,7 @@ export default async function HandoverPage({
             Search results — “{q}” ({hits.length})
           </h2>
           {hits.length === 0 ? (
-            <p style={{ color: '#8b949e' }}>일치하는 문서가 없습니다.</p>
+            <p style={{ color: 'var(--fg-muted)' }}>일치하는 문서가 없습니다.</p>
           ) : (
             <table className="table">
               <thead>
@@ -56,7 +75,7 @@ export default async function HandoverPage({
                   <tr key={hit.id}>
                     <td>
                       <Link href={`/handover/${hit.id}`}>{hit.title}</Link>
-                      <div style={{ fontSize: 11, color: '#8b949e' }}>{hit.file_path}</div>
+                      <div style={{ fontSize: 11, color: 'var(--fg-muted)' }}>{hit.file_path}</div>
                     </td>
                     <td style={{ whiteSpace: 'pre-wrap' }}>{hit.snippet}</td>
                     <td>{new Date(hit.updated_at).toLocaleString()}</td>
@@ -73,7 +92,7 @@ export default async function HandoverPage({
         <>
           <h2>Recent handovers ({recent.length})</h2>
           {recent.length === 0 ? (
-            <p style={{ color: '#8b949e' }}>아직 작성된 문서가 없습니다.</p>
+            <p style={{ color: 'var(--fg-muted)' }}>아직 작성된 문서가 없습니다.</p>
           ) : (
             <table className="table">
               <thead>

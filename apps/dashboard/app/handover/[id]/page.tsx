@@ -19,7 +19,7 @@ export default async function HandoverDetail({
         <Link href="/handover">← back to handover</Link>
       </p>
       <h1>{doc.title}</h1>
-      <p style={{ color: '#8b949e', fontSize: 12 }}>
+      <p style={{ color: 'var(--fg-muted)', fontSize: 12 }}>
         <code>{doc.file_path}</code> · updated {new Date(doc.updated_at).toLocaleString()}
         {doc.task_id && (
           <>
@@ -31,13 +31,13 @@ export default async function HandoverDetail({
       </p>
       <pre
         style={{
-          background: '#161b22',
-          border: '1px solid #30363d',
-          borderRadius: 6,
-          padding: 14,
+          background: 'var(--bg-elev)',
+          border: '1px solid var(--border)',
+          borderRadius: 8,
+          padding: 16,
           whiteSpace: 'pre-wrap',
           fontSize: 13,
-          lineHeight: 1.5,
+          lineHeight: 1.55,
         }}
       >
         {doc.content_md}
