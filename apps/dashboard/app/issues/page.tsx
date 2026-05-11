@@ -29,18 +29,18 @@ function ralphStatusLabel(row: ReturnType<typeof queries.findings.listIssues>[nu
   color: string;
 } {
   if (row.resolved_at !== null) {
-    return { label: '✓ resolved', bg: 'color-mix(in srgb, var(--st-done) 15%, white)', color: '#15803d' };
+    return { label: '✓ resolved', bg: 'color-mix(in srgb, var(--st-done) 15%, white)', color: 'var(--ralph-done-color)' };
   }
   if (!row.ralph_run_id) {
-    return { label: 'unassigned', bg: 'color-mix(in srgb, #f97316 15%, white)', color: '#c2410c' };
+    return { label: 'unassigned', bg: 'color-mix(in srgb, var(--st-blocked) 15%, white)', color: 'var(--ralph-unassigned-color)' };
   }
   if (row.ralph_exit_reason === 'qc_passed') {
-    return { label: '✓ fixed', bg: 'color-mix(in srgb, var(--st-done) 15%, white)', color: '#15803d' };
+    return { label: '✓ fixed', bg: 'color-mix(in srgb, var(--st-done) 15%, white)', color: 'var(--ralph-done-color)' };
   }
   if (row.ralph_exit_reason === 'max_iter' || row.ralph_exit_reason === 'aborted' || row.ralph_exit_reason === 'error') {
-    return { label: '✗ ' + row.ralph_exit_reason, bg: 'color-mix(in srgb, #ef4444 15%, white)', color: '#b91c1c' };
+    return { label: '✗ ' + row.ralph_exit_reason, bg: 'color-mix(in srgb, var(--st-failed) 15%, white)', color: 'var(--sv-blocker)' };
   }
-  return { label: '진행 중', bg: 'color-mix(in srgb, #3b82f6 15%, white)', color: '#1d4ed8' };
+  return { label: '진행 중', bg: 'color-mix(in srgb, var(--t-feature) 15%, white)', color: 'var(--ralph-progress-color)' };
 }
 
 export default async function IssuesPage({

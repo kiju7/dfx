@@ -4,12 +4,12 @@ import { queries } from '@agent-forge/db';
 export const dynamic = 'force-dynamic';
 
 const KIND_META: Record<string, { color: string; bg: string; emoji: string }> = {
-  triage:         { color: '#9a3412', bg: '#fff7ed', emoji: '🧭' },
-  'pm-breakdown': { color: '#6b21a8', bg: '#faf5ff', emoji: '📋' },
-  'ralph-route':  { color: '#166534', bg: '#f0fdf4', emoji: '🔁' },
-  escalation:     { color: '#991b1b', bg: '#fef2f2', emoji: '⚠️' },
-  merge:          { color: '#854d0e', bg: '#fefce8', emoji: '🟢' },
-  other:          { color: '#374151', bg: '#f3f4f6', emoji: '·'  },
+  triage:         { color: 'var(--d-triage-color)',     bg: 'var(--d-triage-bg)',     emoji: '🧭' },
+  'pm-breakdown': { color: 'var(--d-pm-color)',         bg: 'var(--d-pm-bg)',         emoji: '📋' },
+  'ralph-route':  { color: 'var(--d-route-color)',      bg: 'var(--d-route-bg)',      emoji: '🔁' },
+  escalation:     { color: 'var(--d-escalation-color)', bg: 'var(--d-escalation-bg)', emoji: '⚠️' },
+  merge:          { color: 'var(--d-merge-color)',       bg: 'var(--d-merge-bg)',      emoji: '🟢' },
+  other:          { color: 'var(--d-other-color)',       bg: 'var(--d-other-bg)',      emoji: '·'  },
 };
 
 export default function DecisionsPage() {

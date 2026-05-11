@@ -50,7 +50,7 @@ export default function Page() {
                 background: highOpen > 0
                   ? 'color-mix(in srgb, var(--sv-major) 18%, white)'
                   : 'var(--bg-sunken)',
-                color: highOpen > 0 ? '#9a3412' : 'var(--fg-muted)',
+                color: highOpen > 0 ? 'var(--d-triage-color)' : 'var(--fg-muted)',
                 padding: '2px 8px',
                 borderRadius: 999,
                 fontSize: 12,
@@ -103,7 +103,7 @@ export default function Page() {
                               background: issues.high > 0
                                 ? 'color-mix(in srgb, var(--sv-major) 18%, white)'
                                 : 'var(--bg-sunken)',
-                              color: issues.high > 0 ? '#9a3412' : 'var(--fg-muted)',
+                              color: issues.high > 0 ? 'var(--d-triage-color)' : 'var(--fg-muted)',
                               border: issues.high > 0
                                 ? '1px solid color-mix(in srgb, var(--sv-major) 30%, transparent)'
                                 : '1px solid var(--border)',

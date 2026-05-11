@@ -58,6 +58,20 @@ html, body {
   --a-qc: #ef4444;
   --a-system: #64748b;
   --a-user: #0f172a;
+
+  /* ralph run 상태 배지 */
+  --ralph-unassigned-color: #c2410c;
+  --ralph-progress-color: #1d4ed8;
+  --ralph-done-color: #15803d;
+  --ralph-escalation-color: #b45309;
+
+  /* decisions kind 배지 */
+  --d-triage-color: #9a3412;   --d-triage-bg: #fff7ed;
+  --d-pm-color: #6b21a8;       --d-pm-bg: #faf5ff;
+  --d-route-color: #166534;    --d-route-bg: #f0fdf4;
+  --d-escalation-color: #991b1b; --d-escalation-bg: #fef2f2;
+  --d-merge-color: #854d0e;    --d-merge-bg: #fefce8;
+  --d-other-color: #374151;    --d-other-bg: #f3f4f6;
 }
 
 a { color: var(--link); text-decoration: none; }

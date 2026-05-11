@@ -50,21 +50,21 @@ function ralphStatusBadge(ralphRun: RalphRunRow | null): {
     // unassigned → orange 강조
     return {
       label: 'unassigned',
-      color: '#c2410c',
-      bg: 'color-mix(in srgb, #f97316 18%, white)',
+      color: 'var(--ralph-unassigned-color)',
+      bg: 'color-mix(in srgb, var(--st-blocked) 18%, white)',
     };
   }
   if (ralphRun.ended_at === null) {
     return {
       label: '처리 중',
-      color: '#1d4ed8',
-      bg: 'color-mix(in srgb, #3b82f6 15%, white)',
+      color: 'var(--ralph-progress-color)',
+      bg: 'color-mix(in srgb, var(--t-feature) 15%, white)',
     };
   }
   if (ralphRun.exit_reason === 'qc_passed') {
     return {
       label: '처리 완료',
-      color: '#15803d',
+      color: 'var(--ralph-done-color)',
       bg: 'color-mix(in srgb, var(--st-done) 15%, white)',
     };
   }
@@ -75,15 +75,15 @@ function ralphStatusBadge(ralphRun: RalphRunRow | null): {
   ) {
     return {
       label: '실패',
-      color: '#b91c1c',
-      bg: 'color-mix(in srgb, #ef4444 15%, white)',
+      color: 'var(--sv-blocker)',
+      bg: 'color-mix(in srgb, var(--st-failed) 15%, white)',
     };
   }
   // exit_reason이 알 수 없는 값인 경우 → 에스컬레이션
   return {
     label: '에스컬레이션',
-    color: '#b45309',
-    bg: 'color-mix(in srgb, #f59e0b 15%, white)',
+    color: 'var(--ralph-escalation-color)',
+    bg: 'color-mix(in srgb, var(--st-progress) 15%, white)',
   };
 }
 
