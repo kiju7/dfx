@@ -1,6 +1,6 @@
 # agent-forge
 
-**Claude Code 안에서 다중 전문 에이전트가 협업하는 엔지니어링 파이프라인.** `/forge "X 해줘"` 한 번이면 — triage 가 분류하고, 필요하면 PM 이 분해하고, frontend/backend/database/devops/daemon/ux/ai 전문 에이전트가 **병렬로** 작업하고, 4명의 QC 가 **병렬로** 검토하고, 발견된 결함은 자동 fix 루프가 처리합니다.
+**Claude Code 안에서 다중 전문 에이전트가 협업하는 엔지니어링 파이프라인.** `/forge "X 해줘"` 한 번이면 — triage 가 분류하고, 필요하면 PM 이 분해하고, frontend/backend/database/devops/daemon/ux/ai 전문 에이전트가 **병렬로** 작업하고, 4명의 QC 가 **병렬로** 검토하고, 발견된 결함은 **Ralph Loop** (findings 가 0이 될 때까지 반복) 가 자동으로 고칩니다.
 
 > 100% 네이티브 — Claude Code 의 `Task` subagent 도구로만 동작. 외부 서버·DB·대시보드 없음. 설치 = 파일 복사.
 
@@ -30,7 +30,9 @@
                             │ edgecase │ security │ perf │  ux  │
                             └──────────┴──────────┴──────┴──────┘
                                           │
-                              findings 있으면 ↻ 최대 2회
+                            findings 있으면 ↻ Ralph Loop
+                            (clean 될 때까지, max 10 iter ·
+                             같은 finding 2회 미해결 = STUCK)
                                           │
                                           ▼
                                    🏁 consolidated summary
@@ -139,8 +141,8 @@ subagent 내부 로그는 **parent chat 에 새지 않습니다** — Task subag
 | 작업 규모 | 모델 분포 | 1 회 비용 추정 |
 |---|---|---|
 | 단순 fix (한 파일) | Triage(Haiku) + dev(Sonnet) + QC×4(Sonnet) | $0.10–0.40 |
-| 일반 기능 / 버그 | + PM(Sonnet) + 1~2 fix 루프 | $0.50–2.50 |
-| 다중 도메인 신규 기능 | dev 여러 개 병렬 + QC×4 + fix 루프 ×2 | $2–8 |
+| 일반 기능 / 버그 | + PM(Sonnet) + Ralph 1~2 iter | $0.50–2.50 |
+| 다중 도메인 신규 기능 | dev 여러 개 병렬 + QC×4 + Ralph 2~5 iter | $2–10 |
 
 비용 제어:
 - 모델은 각 subagent MD 의 `model:` 필드에 박혀 있음 — 비싸다 싶으면 `.claude/agents/<name>.md` 의 `model: sonnet` → `haiku` 로 다운그레이드.

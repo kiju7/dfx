@@ -72,23 +72,43 @@ Print:
 
 > 🔍 **QC** — total `<N>` findings (blocker `<a>` · critical `<b>` · major `<c>` · minor `<d>` · nit `<e>`)
 
-### 5. Auto-fix loop  (Ralph)
+### 5. Ralph Loop  (수렴할 때까지)
 
-For each non-`nit` finding, route it by `category`:
-- `ui | a11y | layout | ux` → `frontend` (or `ux` if pure design)
-- `api | worker | queue | cron | agent | prompt | tool` → `backend` / `daemon` / `ai`
-- `db` → `database`
-- `auth | security` → `backend`
-- `perf` → role inferred from finding's file path
-- otherwise → `backend`
+이건 본격 Ralph Loop — `nit` 이 아닌 finding 이 **0이 될 때까지** 반복. 안전장치만 두고 끝까지 돈다.
 
-**Group findings by assigned role** and spawn one Task per role **in parallel** (single message, N Task calls). The prompt includes the list of findings for that role, plus instruction: "Fix each finding. Return `TASK_DONE` after all are addressed."
+**Iteration body** (한 사이클):
 
-Repeat steps 4 and 5 (re-QC after fixes) up to **2 iterations** total. Stop early if QC returns 0 non-`nit` findings.
+a. **Route by category** — 각 non-`nit` finding 을 담당 role 로 매핑:
+   - `ui | a11y | layout | ux` → `frontend` (순수 디자인은 `ux`)
+   - `api | worker | queue | cron | agent | prompt | tool` → `backend` / `daemon` / `ai`
+   - `db` → `database`
+   - `auth | security` → `backend`
+   - `perf` → finding 의 파일 경로로 추론
+   - 그 외 → `backend`
 
-Print at the start of each iteration:
+b. **Group by role**, role 마다 Task 1개 **병렬 spawn** (한 메시지 안에 N Task). 프롬프트에 해당 role 의 findings 목록 + "Fix each finding. Return `TASK_DONE` after all are addressed."
 
-> 🔧 **Fix iter `<i>`** — `<N>` findings to address across `<M>` roles
+c. **모든 dev Task 가 끝나면 step 4 (QC 4종 병렬) 재실행**.
+
+d. **Iteration 종료 조건**:
+   - non-`nit` findings 가 0 → ✅ 수렴 성공, 루프 종료
+   - 같은 finding (제목 또는 파일+카테고리) 이 **2회 연속 미해결** → 그 finding 을 `STUCK` 으로 마킹하고 다음 iteration 의 fix 대상에서 제외 (다른 finding 들은 계속 처리)
+   - 모든 잔여 finding 이 `STUCK` 으로 마킹됨 → ⚠ 수렴 실패, 루프 종료 (요약에서 escalation 으로 보고)
+   - **하드 캡**: `MAX_ITERATIONS = 10` (비용 폭주 안전장치). 도달 시 ⌛ 종료.
+
+e. **사이클마다 한 줄 출력**:
+
+   > 🔧 **Ralph iter `<i>`** — `<N>` findings → `<M>` roles · prev stuck=`<K>`
+
+   사이클 종료 후:
+
+   > 🔁 **iter `<i>` result** — fixed `<x>`, new `<y>`, stuck `<z>`, remaining `<r>`
+
+**중요**: QC 가 새 finding 을 발견할 수 있다. 매 iteration 의 QC 결과는 누적이 아니라 그 시점의 코드 상태 기준 — `STUCK` 마킹은 "같은 제목+카테고리의 finding 이 다시 떠올랐는가" 로 판정.
+
+루프 끝난 직후 한 줄:
+
+> 🏁 **Ralph done** — `<iter 수>` iters · fixed `<누적>` · stuck `<수>` · clean=`<yes/no>`
 
 ### 6. Final summary
 
@@ -99,10 +119,12 @@ Print a single consolidated summary block:
 
 요청: <원본 요청 한 줄>
 서브태스크: <done>/<total>  (escalated: <e>)
-QC 통과: <yes/no>  잔여 findings: <N> (blocker=<a> ...)
+Ralph: <iter 수> iters · clean=<yes/no> · stuck=<수>
+잔여 findings: <N> (blocker=<a> · critical=<b> · major=<c> · minor=<d> · nit=<e>)
 변경 파일: <count>  (큰 변경 ≥ 5 lines 만)
 
 다음 단계 권고:
+  · stuck finding 있으면 사람이 봐야 할 항목으로 안내
   · ...
 ```
 
