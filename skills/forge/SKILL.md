@@ -11,6 +11,45 @@ description: Multi-agent engineering pipeline that runs entirely inside Claude C
 
 ---
 
+## 사전 준비: `_workspace/` audit log
+
+파이프라인 시작 전, audit log 디렉토리를 만든다 (Bash 1회):
+
+```bash
+RUN_ID="$(date +%Y%m%d-%H%M%S)-$(printf '%04x' $((RANDOM % 65536)))"
+mkdir -p "_workspace/${RUN_ID}/03-impl" "_workspace/${RUN_ID}/04-qc" "_workspace/${RUN_ID}/05-ralph"
+# 원본 사용자 요청 저장
+cat > "_workspace/${RUN_ID}/00-request.md" <<'EOF'
+<원본 user 요청 원문>
+EOF
+echo "${RUN_ID}" > "/tmp/forge-current-run-id"
+```
+
+부모 chat 에 한 줄:
+> 📁 **Audit log** — `_workspace/<RUN_ID>/`
+
+이후 단계마다 `_workspace/${RUN_ID}/` 아래에 파일 append. 구조:
+
+```
+_workspace/<run-id>/
+  00-request.md          # 원본 요청
+  01-triage.json         # triage 출력 (raw JSON)
+  02-plan.json           # Tech Lead 출력 (or branches if needs_user)
+  03-impl/
+    layer-0/
+      <role>-<idx>.md    # brief + WORK_SUMMARY + 상태
+  04-qc/
+    iter-0.json          # 초기 QC findings
+    iter-N.json          # Ralph iter N 의 QC
+  05-ralph/
+    iter-1.md            # finding 매핑 + dispatch + 결과
+  99-summary.md          # 최종 consolidated
+```
+
+`.gitignore` 가 `_workspace/` 추적 안 함. 디스크 사용 미미 (run 당 ~수십 KB).
+
+---
+
 ## 파이프라인
 
 ### 1. Triage (항상)
@@ -24,6 +63,8 @@ description: Multi-agent engineering pipeline that runs entirely inside Claude C
 파싱 후 한 줄 상태 출력:
 
 > 🎯 **Triage** — `<kind>` · route=`<route>` · targets=`<targets>`
+
+raw JSON 을 `_workspace/${RUN_ID}/01-triage.json` 에 저장.
 
 ### 2. Plan — Tech Lead (route == "lead" 인 경우)
 
@@ -76,6 +117,8 @@ description: Multi-agent engineering pipeline that runs entirely inside Claude C
 > 📋 **Plan** — `<N>` subtasks
 
 sub-task 마다 한 줄: `  · [<role>] <title>`.
+
+Tech Lead 의 raw JSON 응답 (분해 결과 OR branches) 을 `_workspace/${RUN_ID}/02-plan.json` 에 저장.
 
 ### 3. Implement (병렬)
 
@@ -178,6 +221,8 @@ layer 끝나면 한 줄:
 
 > ✅ **Layer `<n>`** — `<done>/<total>` done · escalations: `<목록 또는 none>`
 
+각 dev 의 반환 (`WORK_SUMMARY` + `TASK_DONE` 또는 `ESCALATE` 또는 `SUGGEST_REVISION`) 을 `_workspace/${RUN_ID}/03-impl/layer-<n>/<role>-<idx>.md` 에 저장. brief, dev 반환, 처리 결과 포함.
+
 subagent 가 ESCALATE 해도 **파이프라인 중단 금지**. 해당 sub-task 만 escalated 마킹하고, 그것에 의존하지 않는 layer 는 계속 진행. 최종 요약에서 escalation 들 노출.
 
 ### 4. QC 리뷰 (병렬 · 4명)
@@ -190,6 +235,8 @@ subagent 가 ESCALATE 해도 **파이프라인 중단 금지**. 해당 sub-task 
 출력:
 
 > 🔍 **QC** — total `<N>` findings (blocker `<a>` · critical `<b>` · major `<c>` · minor `<d>` · nit `<e>`)
+
+전 findings 합본을 `_workspace/${RUN_ID}/04-qc/iter-<n>.json` 에 저장 (`<n>` = Ralph iter 카운터, 초기 = `0`).
 
 ### 5. Ralph Loop (수렴할 때까지)
 
@@ -228,6 +275,12 @@ e. **사이클마다 한 줄 출력**:
 
    > 🔁 **iter `<i>` result** — fixed `<x>`, new `<y>`, stuck `<z>`, remaining `<r>`
 
+f. **사이클 결과 저장** — `_workspace/${RUN_ID}/05-ralph/iter-<i>.md` 에 다음 모두 기록:
+   - finding 의 role-매핑 결정
+   - 각 role 의 dev dispatch 결과 (WORK_SUMMARY)
+   - iter 결과 통계 (fixed / new / stuck / remaining)
+   - 새 QC findings 는 `04-qc/iter-<i>.json` 에 별도 저장 (위 step 4 와 동일 경로 규약).
+
 **중요**: QC 가 새 finding 을 발견할 수 있음. 매 iter 의 QC 결과는 누적이 아닌 그 시점 코드 기준 — `STUCK` 마킹은 "같은 제목+카테고리의 finding 이 다시 떴는가" 로 판정.
 
 루프 끝난 뒤 한 줄:
@@ -246,11 +299,14 @@ e. **사이클마다 한 줄 출력**:
 Ralph: <iter 수> iters · clean=<yes/no> · stuck=<수>
 잔여 findings: <N> (blocker=<a> · critical=<b> · major=<c> · minor=<d> · nit=<e>)
 변경 파일: <count>  (큰 변경 ≥ 5 lines 만)
+📁 Audit log: _workspace/<RUN_ID>/
 
 다음 단계 권고:
   · stuck finding 있으면 사람이 봐야 할 항목으로 안내
   · ...
 ```
+
+위 요약 블록 전문을 `_workspace/${RUN_ID}/99-summary.md` 에도 저장.
 
 ---
 
@@ -260,6 +316,7 @@ Ralph: <iter 수> iters · clean=<yes/no> · stuck=<수>
 2. **출력은 조용히.** batch 사이에 짧은 상태 라인 한 줄만. raw subagent transcript 는 부모 chat 에 노출 금지. 사용자는 깨끗한 부모 chat 을 원함.
 3. **본인이 일하지 말 것.** 역할은 subagent spawn. `Read`/`Bash` 는 아래에만:
    - 시작 시 작업 디렉토리 sanity check (`pwd`, `git status -s`)
+   - **`_workspace/<RUN_ID>/` audit log 파일 작성** (각 phase 끝마다)
    - subagent JSON 출력 파싱
    - 최종 요약을 위한 `git diff --stat`
 4. **외부 서비스 금지.** 백그라운드 daemon·웹서버·DB 어떤 것도 띄우지 않음. 모든 동작은 Task subagent 안에서.

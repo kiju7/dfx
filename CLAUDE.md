@@ -36,3 +36,4 @@ Claude Code 플러그인은 **플러그인 루트** 의 `commands/`, `agents/`, 
 
 - New role or QC reviewer → add an `.md` file under `agents/` with frontmatter `name | description | model | tools`. Reference it from `skills/forge/SKILL.md` routing.
 - Pipeline shape changes → edit `skills/forge/SKILL.md` only.
+- Per-run audit log lives at `_workspace/<run-id>/` (gitignored). Each phase appends a file: `00-request.md`, `01-triage.json`, `02-plan.json`, `03-impl/`, `04-qc/`, `05-ralph/`, `99-summary.md`.

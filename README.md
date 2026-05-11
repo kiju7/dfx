@@ -110,6 +110,31 @@ QC 통과: yes  잔여 findings: 0
 
 subagent 내부 로그는 **parent chat 에 새지 않습니다** — Task subagent 격리 덕분.
 
+### 📁 Audit log (v0.9+)
+
+매 /forge 호출은 `_workspace/<run-id>/` 에 단계별 audit log 를 남깁니다:
+
+```
+_workspace/20260511-153022-a3f4/
+  00-request.md          # 원본 요청
+  01-triage.json         # triage 출력
+  02-plan.json           # Tech Lead 분해 결과
+  03-impl/layer-0/
+    frontend-1.md        # dev 의 brief + WORK_SUMMARY + 결과
+    backend-1.md
+  04-qc/iter-0.json      # QC findings (초기)
+  04-qc/iter-1.json      # QC findings (Ralph iter 1 후)
+  05-ralph/iter-1.md     # Ralph 사이클 1 의 dispatch + 결과
+  99-summary.md          # 최종 consolidated
+```
+
+용도:
+- **Audit / review** — 팀 리뷰 시 "이 commit 이 어떻게 나왔는지" 추적
+- **Debug** — /forge 결과가 이상하면 단계별 입출력 확인
+- **챗 context 휘발 후 회수** — chat compaction 돼도 디스크엔 남음
+
+`.gitignore` 가 `_workspace/` 무시. 디스크 사용 미미 (run 당 ~수십 KB).
+
 ---
 
 ## 비용 가이드
