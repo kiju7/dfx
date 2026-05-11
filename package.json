@@ -15,7 +15,8 @@
     "migrate": "pnpm --filter @agent-forge/db run migrate",
     "orchestrator": "pnpm --filter @agent-forge/orchestrator run dev",
     "dashboard": "pnpm --filter @agent-forge/dashboard run dev",
-    "smoke": "tsx scripts/smoke.ts"
+    "smoke": "tsx scripts/smoke.ts",
+    "smoke:pm": "SMOKE_SCENARIO=breakdown tsx scripts/smoke.ts"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

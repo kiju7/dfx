@@ -90,11 +90,30 @@ export async function runAgent(opts: RunOptions): Promise<RunResult> {
     },
   };
 
+  let lastAssistantText = '';
+
   for await (const message of query({ prompt: opts.prompt, options: sdkOptions })) {
     collected.push(message);
     opts.onMessage?.(message);
     if ('session_id' in message && typeof message.session_id === 'string') {
       sessionId = message.session_id;
+    }
+    if (message.type === 'assistant') {
+      const blocks = (message as { message?: { content?: unknown[] } }).message?.content;
+      if (Array.isArray(blocks)) {
+        const text = blocks
+          .filter(
+            (b): b is { type: 'text'; text: string } =>
+              typeof b === 'object' &&
+              b !== null &&
+              (b as { type?: string }).type === 'text' &&
+              typeof (b as { text?: unknown }).text === 'string'
+          )
+          .map((b) => b.text)
+          .join('\n')
+          .trim();
+        if (text) lastAssistantText = text;
+      }
     }
     if (message.type === 'result') {
       stopReason = message.subtype ?? 'success';
@@ -103,6 +122,10 @@ export async function runAgent(opts: RunOptions): Promise<RunResult> {
       }
     }
   }
+
+  // Fall back to the last assistant text when the SDK didn't surface a final result
+  // (e.g. error_max_turns) — the agent may still have produced usable output.
+  if (!finalText && lastAssistantText) finalText = lastAssistantText;
 
   return {
     text: finalText,

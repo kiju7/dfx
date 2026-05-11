@@ -54,3 +54,17 @@ export const QcReportSchema = z.object({
   findings: z.array(QcFindingSchema).default([]),
 });
 export type QcReport = z.infer<typeof QcReportSchema>;
+
+export const PmSubtaskSchema = z.object({
+  title: z.string().min(1),
+  targets: z.array(z.enum(AGENT_ROLES)).min(1).max(2),
+  brief: z.string().min(1),
+  depends_on: z.array(z.number().int().nonnegative()).default([]),
+});
+export type PmSubtask = z.infer<typeof PmSubtaskSchema>;
+
+export const PmBreakdownSchema = z.object({
+  summary: z.string().default(''),
+  subtasks: z.array(PmSubtaskSchema).min(1).max(8),
+});
+export type PmBreakdown = z.infer<typeof PmBreakdownSchema>;

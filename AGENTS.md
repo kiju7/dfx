@@ -7,3 +7,5 @@ Read this before classifying or routing a request.
 ## Lessons
 
 <!-- AUTO-APPEND BELOW THIS LINE -->
+
+- 2026-05-11T00:51:34.800Z — Ralph fix: a11y/major resolved by frontend-lead in 1 iter.

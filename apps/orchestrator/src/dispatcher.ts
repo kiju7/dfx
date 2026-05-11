@@ -6,13 +6,17 @@ import {
   CATEGORY_TO_ROLE,
   findWorkspaceRoot,
   type AgentSpec,
+  type AgentRole,
   type TriageOutput,
   type Severity,
+  type PmSubtask,
 } from '@agent-forge/shared';
 import * as registry from './registry.js';
 import * as worktree from './worktree/manager.js';
 import { publish } from './events/publisher.js';
 import { enterRalphLoop } from './ralph/loop.js';
+import { runPmBreakdown } from './pm.js';
+import { writeHandover } from './handover.js';
 
 const REPO_ROOT = findWorkspaceRoot();
 
@@ -21,6 +25,13 @@ export interface DispatchInput {
   title: string;
   body: string;
   triage: TriageOutput;
+}
+
+interface TaskDescriptor {
+  title: string;
+  brief: string;
+  targets: AgentRole[];
+  depends_on: number[];
 }
 
 interface DevRun {
@@ -89,8 +100,7 @@ async function spawnDev(input: {
 async function runQc(args: {
   qc: AgentSpec;
   target: DevRun;
-  requestId: string;
-}): Promise<{ recorded: ReturnType<typeof tally> }> {
+}): Promise<void> {
   const qcCwd = args.target.wt?.path ?? REPO_ROOT;
   const prompt = [
     `# QC review for task ${args.target.task_id.slice(-6)}`,
@@ -138,21 +148,91 @@ async function runQc(args: {
       rewardPoints: r.reward_points,
     });
   }
-  return { recorded };
 }
 
 function pickFollowupRole(category: string): string {
   return CATEGORY_TO_ROLE[category as keyof typeof CATEGORY_TO_ROLE] ?? 'pm';
 }
 
-export async function handleRequest(input: DispatchInput): Promise<void> {
-  // Resolve targets; in Phase 1, if PM is requested but no PM agent is registered,
-  // fall back to the frontend dev agent so the pipeline still moves.
-  const resolved = input.triage.targets
-    .map((role) => registry.firstByRole(role))
-    .filter((s): s is AgentSpec => Boolean(s));
+async function processDevRun(input: { requestId: string; title: string; run: DevRun }): Promise<void> {
+  const run = input.run;
+  queries.tasks.setStatus(run.task_id, 'qc');
+  publish('task.status_changed', { taskId: run.task_id, from: 'in_progress', to: 'qc' });
 
-  let targets: AgentSpec[] = resolved;
+  await Promise.all(registry.qcAgents().map((qc) => runQc({ qc, target: run })));
+
+  const findings = queries.findings
+    .byTask(run.task_id)
+    .filter((f) => f.resolved_at === null && SEVERITY_RANK[f.severity] >= SEVERITY_RANK.minor);
+
+  if (findings.length === 0) {
+    if (run.wt && run.ok) {
+      try {
+        const merged = worktree.squashMerge({
+          wt: run.wt,
+          commitMessage: `task: ${input.title} (${run.spec.id})`,
+        });
+        queries.messages.append({
+          task_id: run.task_id,
+          sender_kind: 'system',
+          sender_id: 'orchestrator',
+          body_md: `Squash-merged to main: ${merged.sha.slice(0, 12)}`,
+        });
+      } catch (e) {
+        queries.messages.append({
+          task_id: run.task_id,
+          sender_kind: 'system',
+          sender_id: 'orchestrator',
+          body_md: `Merge failed: ${(e as Error).message}`,
+        });
+      }
+      worktree.prune(run.wt, { deleteBranch: true });
+    }
+    queries.tasks.setStatus(run.task_id, 'done');
+    publish('task.status_changed', { taskId: run.task_id, from: 'qc', to: 'done' });
+    try {
+      writeHandover({
+        task_id: run.task_id,
+        request_title: input.title,
+        agent_id: run.spec.id,
+        body_md: run.text.slice(0, 2000),
+        tags: [run.spec.role],
+      });
+    } catch (e) {
+      queries.messages.append({
+        task_id: run.task_id,
+        sender_kind: 'system',
+        sender_id: 'orchestrator',
+        body_md: `Handover write failed: ${(e as Error).message}`,
+      });
+    }
+    return;
+  }
+
+  for (const f of findings) {
+    await enterRalphLoop({
+      requestId: input.requestId,
+      task: run,
+      finding: { id: f.id, category: f.category, severity: f.severity, title: f.title, detail: f.detail_md },
+      followupRole: pickFollowupRole(f.category),
+    });
+  }
+}
+
+function resolveTargetSpecs(roles: AgentRole[]): AgentSpec[] {
+  const out: AgentSpec[] = [];
+  for (const role of roles) {
+    const spec = registry.firstByRole(role);
+    if (spec) out.push(spec);
+  }
+  return out;
+}
+
+async function executeTaskDescriptor(args: {
+  requestId: string;
+  desc: TaskDescriptor;
+}): Promise<DevRun[]> {
+  let targets = resolveTargetSpecs(args.desc.targets);
   if (targets.length === 0) {
     const fallback = registry.firstByRole('frontend');
     if (fallback) {
@@ -160,105 +240,131 @@ export async function handleRequest(input: DispatchInput): Promise<void> {
         task_id: null,
         sender_kind: 'system',
         sender_id: 'orchestrator',
-        body_md: `Triage targeted [${input.triage.targets.join(',')}] but no matching agent is registered. Falling back to ${fallback.id}.`,
+        body_md: `No agent registered for targets [${args.desc.targets.join(',')}]. Falling back to ${fallback.id}.`,
       });
       targets = [fallback];
+    } else {
+      return [];
     }
   }
-
-  if (targets.length === 0) {
-    queries.requests.setStatus(input.requestId, 'blocked');
-    publish('request.status_changed', {
-      requestId: input.requestId,
-      from: 'triage',
-      to: 'blocked',
-    });
-    return;
-  }
-
-  queries.requests.setStatus(input.requestId, 'executing');
-  publish('request.status_changed', {
-    requestId: input.requestId,
-    from: 'triage',
-    to: 'executing',
-  });
 
   const devRuns = await Promise.all(
     targets.map((spec) =>
       spawnDev({
-        requestId: input.requestId,
+        requestId: args.requestId,
         spec,
-        brief: input.body || input.title,
-        title: input.title,
+        brief: args.desc.brief,
+        title: args.desc.title,
       })
     )
   );
 
-  for (const run of devRuns) {
-    queries.tasks.setStatus(run.task_id, 'qc');
-    publish('task.status_changed', { taskId: run.task_id, from: 'in_progress', to: 'qc' });
-  }
-
-  const qcs = registry.qcAgents();
-  const qcResults = await Promise.all(
-    devRuns.flatMap((run) =>
-      qcs.map(async (qc) => ({ run, ...(await runQc({ qc, target: run, requestId: input.requestId })) }))
-    )
+  await Promise.all(
+    devRuns.map((run) => processDevRun({ requestId: args.requestId, title: args.desc.title, run }))
   );
 
-  // Ralph Loop for each dev run when severity >= minor
-  for (const run of devRuns) {
-    const findings = queries.findings
-      .byTask(run.task_id)
-      .filter((f) => f.resolved_at === null && SEVERITY_RANK[f.severity] >= SEVERITY_RANK.minor);
+  return devRuns;
+}
 
-    if (findings.length === 0) {
-      // No actionable findings — try to merge if worktree
-      if (run.wt && run.ok) {
-        try {
-          const merged = worktree.squashMerge({
-            wt: run.wt,
-            commitMessage: `task: ${input.title} (${run.spec.id})`,
-          });
-          queries.messages.append({
-            task_id: run.task_id,
-            sender_kind: 'system',
-            sender_id: 'orchestrator',
-            body_md: `Squash-merged to main: ${merged.sha.slice(0, 12)}`,
-          });
-        } catch (e) {
-          queries.messages.append({
-            task_id: run.task_id,
-            sender_kind: 'system',
-            sender_id: 'orchestrator',
-            body_md: `Merge failed: ${(e as Error).message}`,
-          });
-        }
-        worktree.prune(run.wt, { deleteBranch: true });
-      }
-      queries.tasks.setStatus(run.task_id, 'done');
-      publish('task.status_changed', { taskId: run.task_id, from: 'qc', to: 'done' });
-      continue;
-    }
+async function executeWaves(args: {
+  requestId: string;
+  descriptors: TaskDescriptor[];
+}): Promise<void> {
+  const completed = new Set<number>();
+  let safety = args.descriptors.length + 1;
 
-    // Ralph Loop entry
-    for (const f of findings) {
-      await enterRalphLoop({
-        requestId: input.requestId,
-        task: run,
-        finding: { id: f.id, category: f.category, severity: f.severity, title: f.title, detail: f.detail_md },
-        followupRole: pickFollowupRole(f.category),
+  while (completed.size < args.descriptors.length && safety-- > 0) {
+    const wave = args.descriptors
+      .map((d, i) => ({ d, i }))
+      .filter(({ d, i }) => !completed.has(i) && d.depends_on.every((j) => completed.has(j)));
+
+    if (wave.length === 0) {
+      queries.messages.append({
+        task_id: null,
+        sender_kind: 'system',
+        sender_id: 'orchestrator',
+        body_md: `Breakdown stalled: cyclic depends_on detected. Pending: ${args.descriptors
+          .map((_, i) => i)
+          .filter((i) => !completed.has(i))
+          .join(',')}`,
       });
+      return;
     }
+
+    await Promise.all(
+      wave.map(({ d }) =>
+        executeTaskDescriptor({ requestId: args.requestId, desc: d })
+      )
+    );
+
+    for (const { i } of wave) completed.add(i);
+  }
+}
+
+function toDescriptors(input: { triage: TriageOutput; title: string; body: string }): TaskDescriptor[] {
+  return [
+    {
+      title: input.title,
+      brief: input.body || input.title,
+      targets: input.triage.targets,
+      depends_on: [],
+    },
+  ];
+}
+
+function pmSubtasksToDescriptors(subs: PmSubtask[], requestTitle: string): TaskDescriptor[] {
+  return subs.map((s) => ({
+    title: `${requestTitle} :: ${s.title}`,
+    brief: s.brief,
+    targets: s.targets,
+    depends_on: s.depends_on,
+  }));
+}
+
+export async function handleRequest(input: DispatchInput): Promise<void> {
+  let descriptors: TaskDescriptor[];
+
+  if (input.triage.route === 'pm' && registry.firstByRole('pm')) {
+    try {
+      const breakdown = await runPmBreakdown({
+        requestId: input.requestId,
+        title: input.title,
+        body: input.body,
+      });
+      queries.messages.append({
+        task_id: null,
+        sender_kind: 'system',
+        sender_id: 'pm-lead',
+        body_md:
+          '```json\n' + JSON.stringify(breakdown, null, 2) + '\n```',
+      });
+      descriptors = pmSubtasksToDescriptors(breakdown.subtasks, input.title);
+    } catch (e) {
+      queries.messages.append({
+        task_id: null,
+        sender_kind: 'system',
+        sender_id: 'orchestrator',
+        body_md: `PM breakdown failed: ${(e as Error).message}. Falling back to direct route.`,
+      });
+      descriptors = toDescriptors(input);
+    }
+  } else {
+    descriptors = toDescriptors(input);
   }
 
-  void qcResults; // referenced; results already persisted
+  if (descriptors.length === 0) {
+    queries.requests.setStatus(input.requestId, 'blocked');
+    publish('request.status_changed', { requestId: input.requestId, from: 'triage', to: 'blocked' });
+    return;
+  }
+
+  queries.requests.setStatus(input.requestId, 'executing');
+  publish('request.status_changed', { requestId: input.requestId, from: 'triage', to: 'executing' });
+
+  await executeWaves({ requestId: input.requestId, descriptors });
+
   queries.requests.setStatus(input.requestId, 'done');
-  publish('request.status_changed', {
-    requestId: input.requestId,
-    from: 'executing',
-    to: 'done',
-  });
+  publish('request.status_changed', { requestId: input.requestId, from: 'executing', to: 'done' });
 }
 
 export type { DevRun };
