@@ -44,7 +44,9 @@ reward_weight: 1.0
 ```
 
 규칙:
-- `targets`는 한 sub-task당 하나의 dev role을 권장 (`frontend | backend | daemon | ai | ux`). 둘 이상이 진짜 동시 필요하면 두 개까지.
+- `targets`는 한 sub-task당 하나의 dev role을 권장 (`frontend | backend | daemon | ai | ux | devops | database`). 둘 이상이 진짜 동시 필요하면 두 개까지.
+  - `devops` — CI/CD, Docker, GitHub Actions, terraform, 배포 스크립트
+  - `database` — SQLite 스키마/마이그레이션/쿼리/인덱스 (백엔드 비즈니스 로직과 구분)
 - 작업이 사소(단일 파일 한두 줄)하면 sub-task는 **1개로 충분**. 쪼개는 것 자체가 비용이다.
 - API 계약·DB 스키마처럼 두 도메인이 합의해야 하는 부분은 brief에 명시.
 - `depends_on`은 다른 sub-task의 0-기반 인덱스. 비어있으면 즉시 시작 가능.

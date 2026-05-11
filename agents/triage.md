@@ -38,7 +38,9 @@ reward_weight: 1.0
 
 - 새 기능, 스펙 변경, 다중 도메인, 모호한 요청 → `route: "pm"`, targets는 ["pm"]만 채운다.
 - 단일 도메인의 작은 버그/명확한 수정 → `route: "direct"`, 해당 개발 에이전트 1~2개를 targets에 (예: ["frontend"], ["frontend","backend"]).
-- targets 후보: `triage | pm | ux | frontend | backend | daemon | ai | qc` 중 적절한 것.
+- targets 후보: `triage | pm | ux | frontend | backend | daemon | ai | devops | database | qc` 중 적절한 것.
+  - `devops` = CI/CD, Docker, GitHub Actions, terraform, 배포 스크립트
+  - `database` = SQLite 스키마·마이그레이션·쿼리·인덱스 튜닝
 - `confidence`는 0.0~1.0. 0.9 초과는 본 코드 직접 편집을 허용하는 임계이므로 보수적으로.
 
 ## 가이드라인

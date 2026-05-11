@@ -29,6 +29,8 @@ export const AGENT_ROLES = [
   'backend',
   'daemon',
   'ai',
+  'devops',
+  'database',
   'qc',
 ] as const;
 export type AgentRole = (typeof AGENT_ROLES)[number];
@@ -77,6 +79,9 @@ export const FINDING_CATEGORIES = [
   'layout',
   'api',
   'db',
+  'schema',
+  'migration',
+  'query',
   'auth',
   'worker',
   'queue',
@@ -86,6 +91,10 @@ export const FINDING_CATEGORIES = [
   'tool',
   'perf',
   'security',
+  'infra',
+  'ci',
+  'deploy',
+  'docker',
   'other',
 ] as const;
 export type FindingCategory = (typeof FINDING_CATEGORIES)[number];
@@ -95,7 +104,10 @@ export const CATEGORY_TO_ROLE: Record<FindingCategory, AgentRole> = {
   a11y: 'frontend',
   layout: 'frontend',
   api: 'backend',
-  db: 'backend',
+  db: 'database',
+  schema: 'database',
+  migration: 'database',
+  query: 'database',
   auth: 'backend',
   worker: 'daemon',
   queue: 'daemon',
@@ -105,5 +117,9 @@ export const CATEGORY_TO_ROLE: Record<FindingCategory, AgentRole> = {
   tool: 'ai',
   perf: 'backend',
   security: 'backend',
+  infra: 'devops',
+  ci: 'devops',
+  deploy: 'devops',
+  docker: 'devops',
   other: 'pm',
 };

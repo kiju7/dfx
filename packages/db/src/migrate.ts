@@ -34,6 +34,12 @@ export function runMigrations(): { applied: string[]; skipped: string[] } {
       continue;
     }
     const sql = readFileSync(resolve(MIGRATIONS_DIR, file), 'utf8');
+    // FKs must be toggled OUTSIDE the transaction. We disable for the
+    // duration of this migration so table-rebuild patterns (the SQLite
+    // recommended workaround for ALTER TABLE limitations) don't trip
+    // FK constraint checks during the intermediate state. Migrations
+    // are responsible for keeping data consistent across the rebuild.
+    db.exec('PRAGMA foreign_keys = OFF;');
     db.exec('BEGIN');
     try {
       db.exec(sql);
@@ -41,8 +47,10 @@ export function runMigrations(): { applied: string[]; skipped: string[] } {
       db.exec('COMMIT');
     } catch (e) {
       db.exec('ROLLBACK');
+      db.exec('PRAGMA foreign_keys = ON;');
       throw e;
     }
+    db.exec('PRAGMA foreign_keys = ON;');
     applied.push(version);
   }
 
