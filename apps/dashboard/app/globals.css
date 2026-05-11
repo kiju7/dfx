@@ -95,6 +95,10 @@ h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--
   transition: color .15s, border-color .15s;
 }
 .topbar nav a:hover { color: var(--fg); text-decoration: none; }
+.topbar nav a[aria-current='page'] {
+  color: var(--fg);
+  border-bottom-color: var(--accent);
+}
 
 .main { padding: 24px 28px 64px; max-width: 1280px; margin: 0 auto; }
 .footer {

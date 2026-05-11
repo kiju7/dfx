@@ -17,7 +17,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <NavLinks />
         </header>
         <main className="main">{children}</main>
-        <footer className="footer">agent-forge v0.1.0</footer>
+        <footer className="footer">
+          {`agent-forge v0.1.0 빌드 ${process.env.NEXT_PUBLIC_BUILD_AT ?? new Date().toISOString().slice(0, 10)}`}
+        </footer>
       </body>
     </html>
   );
