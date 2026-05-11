@@ -51,6 +51,10 @@ const SEVERITY_RANK: Record<Severity, number> = {
   blocker: 4,
 };
 
+// Cap how many findings per task trigger a Ralph round to keep cost+latency bounded.
+// Top-N by reward_points; the rest are recorded but left for the next run.
+const RALPH_FINDING_CAP = Number(process.env.RALPH_FINDING_CAP ?? 3);
+
 async function spawnDev(input: {
   requestId: string;
   spec: AgentSpec;
@@ -188,9 +192,22 @@ async function processDevRun(input: { requestId: string; title: string; run: Dev
 
   await Promise.all(registry.qcAgents().map((qc) => runQc({ qc, target: run })));
 
-  const findings = queries.findings
+  const allActionable = queries.findings
     .byTask(run.task_id)
     .filter((f) => f.resolved_at === null && SEVERITY_RANK[f.severity] >= SEVERITY_RANK.minor);
+  // Cap to the highest-value findings so a noisy QC pool doesn't burn the wall-clock budget.
+  const findings = allActionable
+    .slice()
+    .sort((a, b) => b.reward_points - a.reward_points)
+    .slice(0, RALPH_FINDING_CAP);
+  if (allActionable.length > findings.length) {
+    queries.messages.append({
+      task_id: run.task_id,
+      sender_kind: 'system',
+      sender_id: 'orchestrator',
+      body_md: `Ralph cap: ${allActionable.length} actionable findings — processing top ${findings.length} by reward_points. Remaining ${allActionable.length - findings.length} stay open and will surface in future runs.`,
+    });
+  }
 
   if (findings.length === 0) {
     if (run.wt && run.ok) {
@@ -244,6 +261,10 @@ async function processDevRun(input: { requestId: string; title: string; run: Dev
       followupRole: pickFollowupRole(f.category),
     });
   }
+  // Single terminal transition after all Ralph rounds — Ralph itself no longer
+  // flips the task status so multi-finding loops stay quiet.
+  queries.tasks.setStatus(run.task_id, 'done');
+  publish('task.status_changed', { taskId: run.task_id, from: 'qc', to: 'done' });
 }
 
 function resolveTargetSpecs(roles: AgentRole[]): AgentSpec[] {

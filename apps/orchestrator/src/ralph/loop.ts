@@ -54,7 +54,27 @@ export async function enterRalphLoop(ctx: RalphContext): Promise<void> {
   let isolated = false;
 
   const followupSpec = registry.firstByRole(ctx.followupRole as AgentRole);
-  if (followupSpec && followupSpec.id !== devSpec.id) {
+  // PM is a read-only planner — never route a Ralph fix to it; escalate instead.
+  if (followupSpec && followupSpec.role === 'pm' && devSpec.role !== 'pm') {
+    queries.messages.append({
+      task_id: ctx.task.task_id,
+      sender_kind: 'system',
+      sender_id: 'ralph',
+      body_md: `Finding category "${ctx.finding.category}" maps to PM. PM does not write code — escalating instead of attempting an automated fix.`,
+    });
+    queries.decisions.record({
+      request_id: ctx.requestId,
+      task_id: ctx.task.task_id,
+      kind: 'escalation',
+      scope: ctx.finding.category,
+      title: `Escalation: PM-only fix for ${ctx.finding.category}`,
+      rationale_md: `Category mapping pointed to PM; auto-fix not applicable. Original developer was ${devSpec.id}.`,
+    });
+    queries.ralph.finish(runId, 'aborted');
+    publish('ralph.exit', { runId, taskId: ctx.task.task_id, reason: 'aborted' });
+    return;
+  }
+  if (followupSpec && followupSpec.id !== devSpec.id && followupSpec.worktree !== 'forbidden') {
     devSpec = followupSpec;
     sessionId = undefined; // fresh session, no resume
     try {
@@ -193,10 +213,8 @@ export async function enterRalphLoop(ctx: RalphContext): Promise<void> {
       }
       queries.ralph.finish(runId, 'qc_passed');
       publish('ralph.exit', { runId, taskId: ctx.task.task_id, reason: 'qc_passed' });
-      if (!isolated) {
-        queries.tasks.setStatus(ctx.task.task_id, 'done');
-        publish('task.status_changed', { taskId: ctx.task.task_id, from: 'qc', to: 'done' });
-      }
+      // Note: task status is owned by the dispatcher; Ralph no longer flips it
+      // to 'done' so multi-finding loops stay quiet.
       appendLesson(
         `Ralph fix${isolated ? ' (isolated)' : ''}: ${ctx.finding.category}/${ctx.finding.severity} resolved by ${devSpec.id} in ${iteration} iter.`
       );
