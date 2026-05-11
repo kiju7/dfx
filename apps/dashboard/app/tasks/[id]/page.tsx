@@ -244,13 +244,13 @@ export default async function TaskDetail({ params }: { params: Promise<{ id: str
                         userSelect: 'none',
                       }}>
                         {/* ▶/▼ 커스텀 토글 아이콘 (CSS ::-webkit-details-marker 숨김 대안) */}
-                        <span aria-hidden="true" style={{
+                        <span aria-hidden="true" className="toggle-icon" style={{
                           display: 'inline-block',
                           width: 14,
                           fontSize: 9,
                           color: 'var(--fg-subtle)',
                           marginRight: 4,
-                        }}>▶</span>
+                        }} />
                         {f.title}
                       </summary>
 
