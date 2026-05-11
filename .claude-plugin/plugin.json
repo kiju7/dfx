@@ -1,17 +1,14 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "agent-forge",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Multi-agent engineering pipeline that runs natively inside Claude Code. /forge triages a request, decomposes it via PM if multi-domain, dispatches specialist devs in parallel (frontend/backend/database/devops/daemon/ux/ai), runs 4 QC reviewers (edgecase/security/perf/ux), and runs a real Ralph Loop that fixes findings until clean. All via Task-tool subagents in a single session — no external services, no DB, no dashboard.",
   "author": {
     "name": "kiju7",
     "url": "https://github.com/kiju7"
   },
   "homepage": "https://github.com/kiju7/agent-forge",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/kiju7/agent-forge.git"
-  },
+  "repository": "https://github.com/kiju7/agent-forge.git",
   "license": "MIT",
   "keywords": [
     "claude-code",
