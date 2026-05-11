@@ -2,7 +2,7 @@
 
 **Claude Code 안에서 다중 전문 에이전트가 협업하는 엔지니어링 파이프라인.** `/forge "X 해줘"` 한 번이면 — triage 가 분류하고, 필요하면 PM 이 분해하고, frontend/backend/database/devops/daemon/ux/ai 전문 에이전트가 **병렬로** 작업하고, 4명의 QC 가 **병렬로** 검토하고, 발견된 결함은 **Ralph Loop** (findings 가 0이 될 때까지 반복) 가 자동으로 고칩니다.
 
-> 100% 네이티브 — Claude Code 의 `Task` subagent 도구로만 동작. 외부 서버·DB·대시보드 없음. 설치 = 파일 복사.
+> 100% 네이티브 — Claude Code 의 `Task` subagent 도구로만 동작. 외부 서버·DB·대시보드 없음. 설치 = `/plugin install` 두 줄.
 
 ---
 
@@ -159,31 +159,27 @@ subagent 내부 로그는 **parent chat 에 새지 않습니다** — Task subag
 
 ```
 agent-forge/
-├── .claude-plugin/plugin.json   # Claude Code 플러그인 매니페스트
-├── .claude/
-│   ├── commands/forge.md        # /forge 슬래시 커맨드
-│   ├── skills/forge/SKILL.md    # 파이프라인 오케스트레이션 로직
-│   └── agents/                  # 13개 네이티브 subagent
-│       ├── triage.md
-│       ├── pm.md
-│       ├── frontend.md
-│       ├── backend.md
-│       ├── database.md
-│       ├── devops.md
-│       ├── daemon.md
-│       ├── ux.md
-│       ├── ai.md
-│       ├── qc-edgecase.md
-│       ├── qc-security.md
-│       ├── qc-perf.md
-│       └── qc-ux.md
-└── legacy/                      # 옛 외부 시스템 (orchestrator + Next.js dashboard + SQLite)
-    ├── apps/
-    ├── packages/
-    └── ...
+├── .claude-plugin/
+│   ├── plugin.json              # 플러그인 매니페스트
+│   └── marketplace.json         # 마켓플레이스 엔트리 (/plugin install 가능하게)
+└── .claude/
+    ├── commands/forge.md        # /forge 슬래시 커맨드
+    ├── skills/forge/SKILL.md    # 파이프라인 오케스트레이션 로직
+    └── agents/                  # 13개 네이티브 subagent
+        ├── triage.md
+        ├── pm.md
+        ├── frontend.md
+        ├── backend.md
+        ├── database.md
+        ├── devops.md
+        ├── daemon.md
+        ├── ux.md
+        ├── ai.md
+        ├── qc-edgecase.md
+        ├── qc-security.md
+        ├── qc-perf.md
+        └── qc-ux.md
 ```
-
-`legacy/` 는 이전 버전 (외부 데몬 + 대시보드 + SQLite 영속 상태) 입니다. 네이티브 모드는 이것들을 **쓰지 않습니다** — 참고용으로 보존만.
 
 ---
 

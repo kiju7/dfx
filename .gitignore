@@ -1,19 +1,6 @@
 .DS_Store
 *.log
-
-# Node deps — anywhere in the tree (including nested workspace packages)
 node_modules/
-
-# Legacy external-system runtime
-legacy/data/app.db
-legacy/data/app.db-wal
-legacy/data/app.db-shm
-legacy/data/events.ndjson
-legacy/data/worktrees/
-legacy/artifacts/
-legacy/**/.next/
-legacy/**/dist/
-legacy/**/*.tsbuildinfo
 
 # Local env / secrets
 .env

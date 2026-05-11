@@ -5,12 +5,13 @@ Multi-agent engineering pipeline that runs natively inside Claude Code via `Task
 ## Layout
 
 ```
-.claude-plugin/plugin.json     # Plugin manifest
+.claude-plugin/
+  plugin.json                  # Plugin manifest
+  marketplace.json             # Marketplace entry — enables /plugin install
 .claude/
   commands/forge.md            # /forge entry point
   skills/forge/SKILL.md        # Pipeline orchestration logic (read this for the flow)
   agents/                      # 13 native subagents (triage, pm, 7 devs, 4 QC)
-legacy/                        # Previous external system (Node orchestrator + Next.js dashboard + SQLite) — kept for reference, NOT used by the native pipeline
 ```
 
 ## How a /forge invocation flows
@@ -34,8 +35,3 @@ legacy/                        # Previous external system (Node orchestrator + N
 
 - New role or QC reviewer → add an `.md` file under `.claude/agents/` with frontmatter `name | description | model | tools`. Reference it from `.claude/skills/forge/SKILL.md` routing.
 - Pipeline shape changes → edit `.claude/skills/forge/SKILL.md` only.
-- Do NOT touch `legacy/` to change behavior — that's the previous external system and is unwired.
-
-## What legacy/ used to do (for context)
-
-External Node daemon `apps/orchestrator` + Next.js `apps/dashboard` + SQLite at `data/app.db`. Triage / dispatch / Ralph Loop / git worktrees / cost tracking / FTS5 handover search all lived there. The current native pipeline trades those features for clean parent-chat output (subagent isolation), zero infra, and instant install.

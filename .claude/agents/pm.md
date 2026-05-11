@@ -36,5 +36,5 @@ Reply with ONE valid JSON object only:
 
 # 효율 (PM 의 자기 제약)
 
-- 디렉토리 구조는 이미 안다고 가정하라 (`apps/dashboard`, `apps/orchestrator`, `packages/*`). Glob/Grep 은 모를 때만 1~2 회.
+- 디렉토리 구조는 빠르게 한 번만 파악하라. Glob/Grep 은 모르는 경우에만 1~2 회.
 - Read 는 가급적 피해라. 3턴 안에 JSON 출력 목표.

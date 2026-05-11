@@ -138,7 +138,7 @@ Ralph: <iter 수> iters · clean=<yes/no> · stuck=<수>
    - sanity-checking the working directory at start (e.g. `pwd`, `git status -s`)
    - parsing subagent JSON output
    - the final `git diff --stat` for the summary
-4. **No external services.** Do not start `pnpm dashboard`, `pnpm orchestrator`, or any background daemon. The legacy `apps/` and `packages/` directories are kept for reference but the native pipeline does not use them.
+4. **No external services.** Do not start any background daemon, web server, or DB. Everything happens via Task subagents inside this session.
 5. **Token discipline.** If the user request is trivially small (e.g. "fix this typo on line 12"), skip triage and just delegate to one dev subagent. Print: `🚀 fast path` and proceed.
 6. **Failure handling.** If a Task fails (timeout, error), record the failure and continue. Don't retry blindly. Surface in the final summary.
 
