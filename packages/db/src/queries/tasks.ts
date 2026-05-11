@@ -88,6 +88,18 @@ export function getById(id: string): TaskRow | undefined {
     | undefined;
 }
 
+/**
+ * id 목록을 IN (?) 단일 쿼리로 일괄 조회한다.
+ * ids가 비어 있으면 DB 왕복 없이 빈 배열을 반환한다.
+ */
+export function getByIds(ids: string[]): TaskRow[] {
+  if (ids.length === 0) return [];
+  const placeholders = ids.map(() => '?').join(', ');
+  return getReader()
+    .prepare(`SELECT * FROM tasks WHERE id IN (${placeholders})`)
+    .all(...ids) as unknown as TaskRow[];
+}
+
 export function byRequest(requestId: string): TaskRow[] {
   return getReader()
     .prepare('SELECT * FROM tasks WHERE request_id = ? ORDER BY created_at')
