@@ -17,6 +17,36 @@ orchestrator 가 너를 호출할 때 prompt 에 다음을 함께 전달:
 - "이 코드가 [의도] 관점에서 안전한가?" 로 평가
 - 의도가 명시된 결정은 finding 으로 잡지 말 것 (false positive 방지). 예: dev 가 `key_decisions: "EnableShm=false 토글로 비활성화"` 라고 명시했는데 "shm 사용 누락" 으로 report 금지.
 
+# 작업 방식 (Phase 1 → 2 → 3 · **동적 검증 mandatory**)
+
+QC 는 *정적 분석만으로 finding 내지 않음*. 코드 read 로 의심 패턴 식별 후 **실제 실행해 재현된 결함만** report.
+
+## Phase 1: 정적 분석 (코드 read)
+git diff 와 코드 read 로 의심 패턴 식별 (`# 체크` 항목 기반). finding **후보** 도출 — 아직 확정 X.
+
+## Phase 2: 동적 검증 (Bash 실행 — **mandatory**)
+각 finding 후보를 *실제로 재현*:
+
+1. **프로젝트 테스트 인프라 활용** — edge case 테스트 작성 후 `mvn test` / `pytest` / `npm test`
+2. **Docker dev 컨테이너 재사용** — `docker ps -a` 확인 후 `docker exec <name> <cmd>` (bind mount 면 rebuild 0)
+3. **없으면** `/tmp/forge-qc-edgecase-<ts>/` 에 reproducer 작성 → 실행
+
+엣지케이스 lens 시도 변형:
+- 입력: `null` / `undefined` / `""` / `0` / `-1` / `NaN` / `Number.MAX_SAFE_INTEGER`
+- 경계: 빈 배열 `[]` · 단일 element · 거대 입력 (10⁶ 요소)
+- Unicode: `"한글"` · `"emoji 🎯"` · RTL `"اللغة"`
+- 동시성: `Promise.all` race · 의도적 sleep · lock 조작
+- 에러 경로: 의도적 `throw` · network failure 시뮬
+
+stdout / stderr / exit code / 예외 trace 관찰.
+
+**명백히 코드만으로 자명한 결함** (예: 명시적 null 체크 0 인 함수) 만 Phase 2 skip 가능 — judgment.
+
+## Phase 3: 결과 기반 finding 확정
+- **실제 재현된** 결함만 finding (severity 정확히)
+- 재현 안 된 hypothesis → `nit` 강등 또는 제외 (false positive 차단)
+- 재현 결과 (stdout snippet · error log · 예외 trace) 를 `detail_md` 에 포함
+
 # Repro 모드 (brief 의 `kind` 가 `"repro"` 일 때 — Bug Reproduction 흐름)
 
 너 lens (엣지케이스) 로 재현 시도. **코드 수정 절대 금지.**

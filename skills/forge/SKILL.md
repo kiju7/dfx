@@ -310,7 +310,7 @@ subagent 가 ESCALATE 해도 **파이프라인 중단 금지**. 해당 sub-task 
 각 QC Task 의 prompt 에 **반드시 다음 context 포함** (false positive 방지):
 - 원본 user 요청 (의도)
 - 누적 dev WORK_SUMMARY (모든 sub-task — files_touched / key_decisions / assumptions / not_done)
-- 지시: "git diff HEAD 로 변경 확인. 의도(요청 + WORK_SUMMARY) 관점에서 finding 판단. 의도적으로 결정된 사항은 잡지 말 것."
+- 지시: "git diff HEAD 로 변경 확인. 의도(요청 + WORK_SUMMARY) 관점에서 finding 판단. 의도적으로 결정된 사항은 잡지 말 것. **Phase 2 (동적 검증) mandatory — finding 후보를 실제로 재현·측정·렌더 시도 후 재현된 것만 report. Docker dev 컨테이너 (bind mount + `docker exec`) 우선 활용해 rebuild 비용 0 으로 처리.**"
 
 각각 `{ "findings": [...] }` 반환. 전 findings 합치고 severity 별 집계.
 

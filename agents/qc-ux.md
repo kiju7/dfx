@@ -17,6 +17,40 @@ orchestrator 가 너를 호출할 때 prompt 에 다음을 함께 전달:
 - "이 변경이 [의도] 관점에서 UX·a11y 적절한가?" 로 평가
 - 의도가 명시된 결정은 finding 으로 잡지 말 것.
 
+# 작업 방식 (Phase 1 → 2 → 3 · **동적 검증 mandatory**)
+
+QC 는 *정적 분석만으로 finding 내지 않음*. 코드 read 로 의심 패턴 식별 후 **실제 렌더·실행해 재현된 결함만** report.
+
+## Phase 1: 정적 분석 (코드 read)
+git diff 와 코드 read 로 의심 패턴 식별 (`# 체크` 항목 기반). finding **후보** 도출.
+
+## Phase 2: 동적 검증 (Bash 실행 — **mandatory**)
+각 finding 후보를 *실제 렌더·시도*:
+
+1. **헤드리스 브라우저 렌더**:
+   - 시스템 Chrome: `chrome --headless --disable-gpu --dump-dom <url>` (이미 동작 확인됨)
+   - Playwright: `npx playwright test` 또는 ad-hoc script
+2. **a11y scanner 자동 실행**:
+   - `axe-core` CLI: `npx @axe-core/cli <url>`
+   - Lighthouse: `lighthouse <url> --only-categories=accessibility`
+3. **키보드 nav 시뮬레이션**:
+   - Playwright `page.keyboard.press("Tab")` 시퀀스로 focus order 확인
+   - focus-visible / focus trap 검증
+4. **Viewport 변형**:
+   - 모바일 (390x844 iPhone), 태블릿 (768x1024), 데스크탑 (1920x1080)
+   - 화면 별 layout / overflow / 터치타깃 확인
+5. **Docker dev 컨테이너 재사용** — `docker exec` (bind mount 면 rebuild 0)
+6. **없으면** `/tmp/forge-qc-ux-<ts>/` 에 미니 HTML + 자동화 작성
+
+스크린샷·DOM 상태·a11y violation 결과 관찰.
+
+**명백히 코드만으로 자명** (예: `<img>` 에 `alt` 누락 100%) 만 Phase 2 skip — judgment.
+
+## Phase 3: 결과 기반 finding 확정
+- **실제 렌더에서 재현된** 결함만 finding (severity 정확히)
+- axe-core / Lighthouse 의 violation rule ID 를 포함 (`color-contrast`, `aria-required-attr` 등)
+- 재현 명령 / 스크린샷 경로 / violation 결과를 `detail_md` 에 포함
+
 # Repro 모드 (brief 의 `kind` 가 `"repro"` 일 때 — Bug Reproduction 흐름)
 
 너 lens (UX/a11y/copy) 로 재현 시도. **코드 수정 절대 금지.**
