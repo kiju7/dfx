@@ -116,6 +116,32 @@ raw JSON 을 `_workspace/${RUN_ID}/01-triage.json` 에 저장.
 
 2. 사용자 응답 받음 → `branches[answer]` 의 subtasks 로 진행
 
+**(c) 검증 방식 확인 필요** (Mode 6 — Tech Lead 가 응답에 `verification_choice` 필드 포함했을 때, 위 (a) 또는 (b) 와 결합 가능):
+
+조건: 변경이 *관찰 가능한 동작* + *둘 이상의 합리적 검증 방식* + *선택이 의미있게 다름*.
+
+orchestrator 처리:
+1. 부모 chat 에 표시:
+
+   > 🧪 **검증 방식 선택** [Tech Lead Mode 6]
+   >
+   > `<context>`
+   >
+   >   A. `<approach A>` — `<cost>` / `<fitness>`
+   >   B. `<approach B>` — `<cost>` / `<fitness>`
+   >   C. ...
+   >
+   > 추천: `<recommendation>`. 어떻게 갈까?
+
+2. 사용자 응답 받음
+3. `branches[answer]` 의 subtasks 를 최종 plan 으로 사용 → Step 3 (Implement) 진행
+
+상태 라인 (대기 중):
+> 🧪 **Verification choice** — awaiting user
+
+검증 선택 후 한 줄:
+> 🧪 **Verification** — `<선택>` (`<approach>`)
+
 `route == "direct"` 면 sub-task 1개 합성:
 ```json
 [{ "title": "<짧게>", "targets": triage.targets, "brief": <원본 요청>, "depends_on": [] }]

@@ -272,6 +272,54 @@ context:
 2. 코드 read 후에도 두 이상의 가설이 모두 합리적, root cause 코드만으론 판단 불가
 3. 동작이 *runtime* / *환경* 의존적 (timing·race·환경변수·외부 API)
 
+## 모드 6: 검증 방식 확인 (조건부 — Mode 1 / 3 / 5c plan 의 부가 출력)
+
+Plan 을 만들 때, **검증 방식 선택이 의미있는 경우** normal plan 응답에 `verification_choice` 필드 추가. orchestrator 가 사용자에게 옵션 묻고 응답에 따라 dev brief 결정.
+
+### 발동 조건 (보수적, 셋 모두 해당할 때만)
+
+1. 변경에 **관찰 가능한 동작** 이 있음 (순수 시각·문서 X)
+2. **둘 이상의 합리적인 검증 방식** 존재 — 예:
+   - UI 변경: Playwright e2e / 단위 테스트 / 수동
+   - API: integration test / unit test / curl 수동
+   - 알고리즘: property-based / 예시 기반
+3. 선택이 **비용·범위·자산화 여부** 에 의미있는 차이
+
+### 발동 ❌
+
+- 순수 시각·문서·trivial config·rename
+- 검증 방식이 사실상 한 가지 (예: DB 마이그레이션은 dry-run + apply 외 옵션 없음)
+- 사용자가 요청에 검증 방식 명시함 ("Playwright 로 검증해줘", "수동 확인할 거니까 검증 코드 X")
+
+### 출력 형식
+
+normal plan (Mode 1 / 3 / 5c) 의 JSON 에 `verification_choice` 필드 추가:
+
+```json
+{
+  "summary": "...",
+  "subtasks": [ ...기본 plan (verification 미확정)... ],
+  "verification_choice": {
+    "needed": true,
+    "context": "이 변경은 UI 인터랙션 → 검증 방식 선택 의미있음 (간단한 사유 설명)",
+    "options": [
+      { "label": "A", "approach": "Playwright e2e", "cost": "느림 (~30s)", "fitness": "실제 동작 + 회귀 자산화" },
+      { "label": "B", "approach": "단위 테스트만 (mask logic)", "cost": "빠름 (~1s)", "fitness": "내부 logic, UI 미검증" },
+      { "label": "C", "approach": "수동 확인 (검증 코드 X)", "cost": "0", "fitness": "사용자 직접" }
+    ],
+    "recommendation": "A",
+    "branches": {
+      "A": [ ...A 선택 시 dev brief 에 verification 명시된 subtasks (예: "Playwright spec 작성 포함")... ],
+      "B": [ ...단위 테스트만 추가하는 subtasks... ],
+      "C": [ ...검증 코드 없이 진행하는 subtasks... ]
+    },
+    "reasoning": "왜 verification 선택지를 묻는지"
+  }
+}
+```
+
+trivial / 단일 방식인 경우엔 **`verification_choice` 필드 생략**. 그러면 orchestrator 는 normal plan 으로 진행.
+
 # 분해 규칙
 
 - `targets` = sub-task 1개당 dev role 1명 권장 (`frontend | backend | daemon | ai | ux | devops | database`). 진짜 협업이 필요하면 최대 2명.

@@ -96,6 +96,7 @@ rm -rf /tmp/agent-forge
 - **Tech Lead ↔ Dev 설계 대화** (v0.8+): **Tech Lead** 가 코드를 적극적으로 read 한 후 분해 — 초기 분해부터 코드 reality 반영. 의도가 진짜 모호하면 (`비활성화 vs 삭제` 같은) **Tech Lead 가 초기 분해 시점에 직접 사용자에게 informed question** 을 띄움. dev 가 Discovery 중 brief 가 코드와 안 맞다고 판단하면 `SUGGEST_REVISION` 으로 Tech Lead 한테 돌아가 brief 수정. Dev 가 직접 사용자에게 묻지 않음 — 항상 Tech Lead 경유.
 - **Acceptance Review** (v0.10+): QC 통과 후 Tech Lead 가 한 번 더 최종 검토 — 원본 요청 대비 의도 충족 / 전체 일관성 / PR-review 수준 품질. APPROVE 까지 Ralph 수렴 패턴으로 반복.
 - **모호한 bug 도 OK** (v0.11+): "가끔 X 가 안 됨" 처럼 재현 조건 모르겠어도 던지세요. Tech Lead 가 코드 read 만으로 가설 못 세우면 **dev/QC 가 자동 재현 시도** (Investigation Phase). 재현 결과 기반으로 plan 세워서 진행. 그래도 막히면 사용자한테 정보 요청 escalate.
+- **검증 방식 선택** (v0.12+): 변경에 둘 이상의 합리적 검증 방식이 있을 때 (예: Playwright e2e vs 단위 테스트 vs 수동 확인) **Tech Lead 가 사용자에게 옵션 + cost/fitness 와 함께 물어봄**. 답해주면 그 방식이 dev brief 에 반영. trivial 한 변경 (시각·문서·단일 검증 방식) 에선 안 물음. 요청에 명시했으면 ("Playwright 로 해줘") 그것도 그대로 따라감.
 
 ### 출력 형식 (parent chat)
 
