@@ -221,5 +221,4 @@ rm -rf /tmp/dfx
 ---
 
 - **레포** · <https://github.com/kiju7/dfx>
-- **레퍼런스** · [revfactory/harness](https://github.com/revfactory/harness)
 - **이슈** · GitHub Issues
