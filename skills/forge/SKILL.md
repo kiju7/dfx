@@ -191,7 +191,22 @@ sub-task 를 의존성 layer 로 묶음:
 
 **같은 layer 안에서는 한 어시스턴트 메시지에 `Task` 호출 N개를 동시에 띄워 병렬 실행**. 각 Task 의 `subagent_type` = sub-task 의 첫 번째 target role (`frontend | backend | database | devops | daemon | ai | ux`). brief 를 프롬프트로 넘기고, 원본 사용자 요청도 컨텍스트로 함께 전달.
 
-**Same-role 직렬화** — 한 layer 안에 동일 role sub-task 가 2개 이상이면 그것들끼리는 **직렬 spawn** (한 메시지에 1 Task → `TASK_DONE` 받고 → 다음 메시지에 다음 Task). 같은 파일 동시 편집으로 인한 lost-update 방지. 다른 role 끼리는 같은 메시지에서 그대로 병렬.
+**Same-role 직렬화** (강제 룰, 예외 없음)
+
+한 layer 안에 동일 role sub-task 가 2개 이상이면 그것들끼리는 **직렬 spawn** (한 메시지에 1 Task → `TASK_DONE` 받고 → 다음 메시지에 다음 Task). 다른 role 끼리는 같은 메시지에서 그대로 병렬.
+
+**Tech Lead 가 "parallel-safe" / "병렬 안전" 으로 판단하거나 `scope_files` 가 disjoint 라고 명시해도 이 룰 무시 금지.** 파일 경로 disjoint 만으로는 안전 보장 안 됨:
+- 같은 git working tree 공유 → git index / staging 상태 충돌
+- 빌드 artifact (`target/`, `dist/`, `node_modules/`) 공유
+- cross-package symbol resolution — 한 agent 의 미완 코드가 다른 agent 의 `mvn test` / `tsc` / `pytest` 컴파일 깨뜨림
+- pom.xml / package.json / Cargo.toml 등 shared config
+- import 그래프상 간접 의존
+
+실제 사례 (회귀 방지): 6 개 포맷 핸들러 (pptx/doc/xls/ppt/hwpx/hwp) 가 디렉토리 disjoint 라 Tech Lead 가 병렬 OK 판단 → 실제로는 cross-package test 실패 + 일부 변경 lost-update 로 `.diff` 백업 후 수동 복구. 직렬화 룰이 막아야 했던 케이스.
+
+**누적 WORK_SUMMARY 전달** (직렬화의 부가 이득): n 번째 dev 의 prompt 에 1 ~ n-1 번째 같은 role 의 모든 WORK_SUMMARY 포함. 지시 추가: "기존 형제 sub-task 들이 따른 패턴 (naming · 구조 · assumption · 공통 helper) 을 그대로 유지할 것. 새로 짜지 말고 형제 패턴 재사용."
+
+→ 비슷한 N 개 작업 (예: format handler N 개, CRUD 화면 N 개) 에서 첫 sub-task 가 reference implementation 이 되고 나머지가 그 패턴을 따라감. 일관성 확보.
 
 각 dev subagent 는 **3가지 중 하나** 반환:
 
