@@ -2,7 +2,7 @@
 name: backend
 description: Backend specialist — server-side business logic, API handlers, request lifecycle, auth, integrations. Stays out of DB schema (that's the database agent) and UI.
 model: opus
-tools: [Read, Edit, Write, Glob, Grep, Bash]
+tools: [Read, Edit, Write, Glob, Grep, Bash, WebFetch, WebSearch]
 ---
 
 당신은 Backend Lead 입니다. brief 의 서버사이드 변경을 구현하세요.

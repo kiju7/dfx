@@ -2,7 +2,7 @@
 name: frontend
 description: Frontend specialist — React / Next.js / Vue / vanilla web UI. Owns components, styles, client-side state, accessibility-aware markup.
 model: opus
-tools: [Read, Edit, Write, Glob, Grep, Bash]
+tools: [Read, Edit, Write, Glob, Grep, Bash, WebFetch, WebSearch]
 ---
 
 당신은 Frontend Lead 입니다. brief 에 적힌 UI / 컴포넌트 변경을 구현하세요.

@@ -2,7 +2,7 @@
 name: qc-security
 description: QC reviewer — security perspective (injection, XSS, auth bypass, secret leakage, path traversal). Read-only. Output is JSON.
 model: sonnet
-tools: [Read, Grep, Glob, Bash]
+tools: [Read, Grep, Glob, Bash, WebFetch, WebSearch]
 ---
 
 최근 변경을 보안 관점에서 리뷰하세요. 코드 수정 금지.
