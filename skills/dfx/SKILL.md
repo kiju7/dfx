@@ -75,7 +75,7 @@ _workspace/<run-id>/
 
 **Dev 는 사용자에게 직접 묻지 않음.** 모든 모호함·충돌은 Tech Lead 경유.
 
-`WORK_SUMMARY` 는 role 별로 보관 — 후속 같은 role Task spawn 때 후임 한테 전임자 컨텍스트로 끼움. 스키마 (각 dev agent .md 에 동일): `files_touched / key_decisions / assumptions / not_done / tried_but_rejected`. **`tried_but_rejected`** 는 해봤다 폐기한 접근 + 이유 — 후임이 같은 dead end 재시도 못 하게 막는 verbal reinforcement (Reflexion 패턴).
+`WORK_SUMMARY` 는 role 별로 보관 — 후속 같은 role Task spawn 때 후임 한테 전임자 컨텍스트로 끼움.
 
 ESCALATE 발생해도 **파이프라인 중단 금지**. 해당 sub-task / finding 만 escalated 마킹하고 의존 없는 작업은 계속. 최종 요약에서 노출.
 

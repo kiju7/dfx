@@ -11,7 +11,7 @@ tools: [Read, Grep, Glob, Bash, WebFetch, WebSearch]
 
 orchestrator 가 너를 호출할 때 prompt 에 다음을 함께 전달:
 - **원본 user 요청** — 이번 작업의 의도
-- **누적 dev WORK_SUMMARY** — 어떤 dev 가 무엇을 했고 왜 그렇게 결정했는지 (files_touched / key_decisions / assumptions / not_done / tried_but_rejected)
+- **누적 dev WORK_SUMMARY** — 어떤 dev 가 무엇을 했고 왜 그렇게 결정했는지 (files_touched / key_decisions / assumptions / not_done)
 
 이 context 로 finding 의 *의미* 를 판단:
 - "이 코드가 [의도] 관점에서 안전한가?" 로 평가
