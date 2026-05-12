@@ -59,6 +59,108 @@ _workspace/<run-id>/
 
 ---
 
+## 공통 규약
+
+여러 phase 에서 반복되는 규약을 이 섹션에 한 번만 정의. 각 phase 본문은 **공통 규약 A/B/C/D** 형태로 참조만 함.
+
+### A. Dev 반환 contract (3-type)
+
+모든 dev subagent (초기 implement · fix-dev · revision 재spawn 포함) 는 다음 중 하나 반환:
+
+| 반환 | 의미 |
+|---|---|
+| `WORK_SUMMARY:` + `TASK_DONE` | 정상 완료 |
+| `ESCALATE: <이유>` | 진행 불가 |
+| `SUGGEST_REVISION:` 블록 | brief 와 코드 현실 충돌 또는 동사 모호 → Tech Lead 한테 재설계 위임 (B) |
+
+**Dev 는 사용자에게 직접 묻지 않음.** 모든 모호함·충돌은 Tech Lead 경유.
+
+`WORK_SUMMARY` 는 role 별로 보관 — 후속 같은 role Task spawn 때 후임 한테 전임자 컨텍스트로 끼움. 스키마 (각 dev agent .md 에 동일): `files_touched / key_decisions / assumptions / not_done / tried_but_rejected`. **`tried_but_rejected`** 는 해봤다 폐기한 접근 + 이유 — 후임이 같은 dead end 재시도 못 하게 막는 verbal reinforcement (Reflexion 패턴).
+
+ESCALATE 발생해도 **파이프라인 중단 금지**. 해당 sub-task / finding 만 escalated 마킹하고 의존 없는 작업은 계속. 최종 요약에서 노출.
+
+### B. `SUGGEST_REVISION` → Tech Lead 처리
+
+dev 반환 형태:
+
+    SUGGEST_REVISION:
+      observed:         "코드에서 발견한 사실"
+      conflict:         "brief 의 어떤 가정이 깨졌는지"
+      interpretations:  # 동사 해석이 둘 이상 합리적일 때만 (선택)
+        - { label: "A", description: "...", scope: "..." }
+        - { label: "B", description: "...", scope: "..." }
+      recommendation:   "A"   # dev 의 의견 (선택)
+      proposal:         "Tech Lead 한테 던지는 권장 수정안"
+
+orchestrator:
+
+1. `Task(subagent_type: "lead")` 재호출 (revision mode) — prompt 에 원본 user 요청 + 이전 sub-task brief + dev 의 SUGGEST_REVISION 전체
+2. Tech Lead **두 가지 응답** 중 하나 반환:
+
+   **(a) Decide — brief 수정해서 진행**:
+   ```json
+   { "revision": true, "subtask": { 수정된 brief }, "reasoning": "..." }
+   ```
+   → 수정된 brief 로 dev 재spawn.
+
+   **(b) Escalate — 사용자 확인 필요**:
+   ```json
+   {
+     "revision": true,
+     "needs_user": true,
+     "question": { "observed": "...", "ambiguity": "...", "options": [...], "recommendation": "A" },
+     "branches": {
+       "A": { "title": "...", "targets": [...], "brief": "A 선택 시 brief", "depends_on": [] },
+       "B": { "title": "...", "targets": [...], "brief": "B 선택 시 brief", "depends_on": [] }
+     },
+     "reasoning": "..."
+   }
+   ```
+   → 공통 규약 **C** 처리.
+
+상태 라인:
+> 🔄 **Revise** [`<role>` · `<sub-task title>`] — round `<n>`
+
+**라운드 제한**: revision 라운드 **최대 2회**. 3회째도 미해결이면 자동 escalate-to-user 강제.
+
+### C. 사용자 escalation (Tech Lead → User → Dev)
+
+Tech Lead 이 `needs_user: true` 반환한 경우 orchestrator:
+
+1. 부모 chat 에 표시:
+
+   > 🤔 **확인 필요** [`<context label>`]
+   >
+   > 코드 분석: `<observed>`
+   > 모호함: `<ambiguity>`
+   >
+   >   A. `<option A label>` — `<scope>`
+   >   B. `<option B label>` — `<scope>`
+   >
+   > 추천: `<recommendation>`. 어떻게 갈까?
+
+2. 사용자 응답 (다음 user message) 받음
+3. 응답 매칭:
+   - "A" / "B" 라벨로 응답 → `branches[label]` 사용 (shape 는 호출자별로 다름 — subtasks / brief / fix_directives 등)
+   - 다른 답 (예: "C 안 만들어줘") → Tech Lead 재호출 (응답을 context 에 박아서) → Tech Lead 이 새 revised 응답 반환
+
+상태 라인 (대기 중):
+> 🤔 **Ask** [`<context label>`] — awaiting user input
+
+`<context label>` 은 호출자가 채움:
+
+| 호출자 | `<context label>` | `branches[answer]` shape |
+|---|---|---|
+| Step 2 (b) — Tech Lead 초기 분해 | `Tech Lead 초기 분해` | `{ summary, subtasks: [...] }` |
+| 공통 규약 B (b) — SUGGEST_REVISION escalate | `<role> · <sub-task title>` | `{ title, targets, brief, depends_on }` |
+| Step 6 — Acceptance Review NEEDS_USER | `Acceptance Review` | `{ fix_directives: [...] }` |
+
+### D. Audit log 저장 규약
+
+매 phase 끝마다 `_workspace/${RUN_ID}/<phase-path>/` 아래 파일 append (정확한 경로는 사전 준비 섹션 트리 참조). raw JSON 반환과 처리 결정을 함께 남김.
+
+---
+
 ## 파이프라인
 
 ### 1. Triage (항상)
@@ -69,20 +171,18 @@ _workspace/<run-id>/
 { "kind": "...", "route": "lead"|"direct", "targets": [...], "confidence": 0.x, "reasoning": "..." }
 ```
 
-파싱 후 한 줄 상태 출력:
-
+한 줄:
 > 🎯 **Triage** — `<kind>` · route=`<route>` · targets=`<targets>`
 
-raw JSON 을 `_workspace/${RUN_ID}/01-triage.json` 에 저장.
+저장 (공통 규약 D): `01-triage.json`.
 
 ### 2. Plan — Tech Lead (route == "lead" 인 경우)
 
-`route == "lead"` 이면 `Task(subagent_type: "lead")` spawn.
+`route == "lead"` 이면 `Task(subagent_type: "lead")` spawn. **Tech Lead 는 코드를 적극적으로 read 한 후 분해**.
 
-**Tech Lead 는 코드를 적극적으로 read 한 후 분해**. 두 응답 중 하나 반환:
+응답 분기:
 
 **(a) 분해 완료**:
-
 ```json
 { "summary": "...", "subtasks": [ { "title": "...", "targets": ["frontend"], "brief": "...", "depends_on": [] } ] }
 ```
@@ -101,26 +201,14 @@ raw JSON 을 `_workspace/${RUN_ID}/01-triage.json` 에 저장.
 }
 ```
 
-(b) 인 경우 orchestrator 처리:
-1. 부모 chat 에 표시:
+→ **공통 규약 C** 처리 (`<context label>` = `Tech Lead 초기 분해`). 응답 → `branches[answer].subtasks` 로 진행.
 
-   > 🤔 **확인 필요** [Tech Lead 초기 분해]
-   >
-   > 코드 분석: `<observed>`
-   > 모호함: `<ambiguity>`
-   >
-   >   A. `<option A>` — `<scope>`
-   >   B. `<option B>` — `<scope>`
-   >
-   > 추천: `<recommendation>`. 어떻게 갈까?
-
-2. 사용자 응답 받음 → `branches[answer]` 의 subtasks 로 진행
-
-**(c) 검증 방식 확인 필요** (Mode 6 — Tech Lead 가 응답에 `verification_choice` 필드 포함했을 때, 위 (a) 또는 (b) 와 결합 가능):
+**(c) 검증 방식 확인 필요** (Mode 6 — Tech Lead 가 `verification_choice` 필드 포함했을 때, 위 (a) 또는 (b) 와 결합 가능):
 
 조건: 변경이 *관찰 가능한 동작* + *둘 이상의 합리적 검증 방식* + *선택이 의미있게 다름*.
 
-orchestrator 처리:
+orchestrator:
+
 1. 부모 chat 에 표시:
 
    > 🧪 **검증 방식 선택** [Tech Lead Mode 6]
@@ -133,8 +221,7 @@ orchestrator 처리:
    >
    > 추천: `<recommendation>`. 어떻게 갈까?
 
-2. 사용자 응답 받음
-3. `branches[answer]` 의 subtasks 를 최종 plan 으로 사용 → Step 3 (Implement) 진행
+2. 사용자 응답 받음 → `branches[answer]` 의 subtasks 를 최종 plan 으로 사용 → Step 3 (Implement) 진행
 
 상태 라인 (대기 중):
 > 🧪 **Verification choice** — awaiting user
@@ -153,7 +240,7 @@ orchestrator 처리:
 
 sub-task 마다 한 줄: `  · [<role>] <title>`.
 
-Tech Lead 의 raw JSON 응답 (분해 결과 OR branches) 을 `_workspace/${RUN_ID}/02-plan.json` 에 저장.
+저장 (공통 규약 D): `02-plan.json` (분해 결과 OR branches).
 
 ### 2.5. Investigation Phase (Tech Lead Mode 5b — 조건부, kind=bug + 재현 불명 시)
 
@@ -167,12 +254,12 @@ Tech Lead 가 `investigation: true` 응답 반환하면 (정상 plan 대신):
    - dev / QC 는 코드 변경 없이 재현만 시도 (자세한 동작은 각 agent .md 의 `Repro 모드` 섹션)
    - 각자 `REPRO_REPORT` 반환 (`TASK_DONE`/`WORK_SUMMARY` 대신)
 
-3. 모든 REPRO_REPORT 수집 → `_workspace/${RUN_ID}/02b-investigation/round-<n>/<role>-<idx>.md` 저장
+3. 모든 REPRO_REPORT 수집 → `02b-investigation/round-<n>/<role>-<idx>.md` 저장
 
 4. Tech Lead 재호출 (Mode 5c) — context 에 모든 REPRO_REPORT 첨부:
    - **Mode 1** (가설 명확, normal plan) → Step 3 (Implement) 진행
    - **Mode 5b** (또 investigation 필요) → 이 step 다시 (단 2 라운드 cap)
-   - **Mode 2** (사용자 escalate, 재현 정보 더 필요) → 3b 처리
+   - **Mode 2** (사용자 escalate, 재현 정보 더 필요) → **공통 규약 C** 처리
 
 상태 라인:
 > 🔬 **Investigation round `<n>`** — `<N>` repro tasks 병렬
@@ -204,103 +291,17 @@ sub-task 를 의존성 layer 로 묶음:
 
 실제 사례 (회귀 방지): 6 개 포맷 핸들러 (pptx/doc/xls/ppt/hwpx/hwp) 가 디렉토리 disjoint 라 Tech Lead 가 병렬 OK 판단 → 실제로는 cross-package test 실패 + 일부 변경 lost-update 로 `.diff` 백업 후 수동 복구. 직렬화 룰이 막아야 했던 케이스.
 
-**누적 WORK_SUMMARY 전달** (직렬화의 부가 이득): n 번째 dev 의 prompt 에 1 ~ n-1 번째 같은 role 의 모든 WORK_SUMMARY 포함. 지시 추가: "기존 형제 sub-task 들이 따른 패턴 (naming · 구조 · assumption · 공통 helper) 을 그대로 유지할 것. 새로 짜지 말고 형제 패턴 재사용."
+**누적 WORK_SUMMARY 전달** (직렬화의 부가 이득): n 번째 dev 의 prompt 에 1 ~ n-1 번째 같은 role 의 모든 WORK_SUMMARY 포함. 지시 추가: "기존 형제 sub-task 들이 따른 패턴 (naming · 구조 · assumption · 공통 helper) 을 그대로 유지할 것. 새로 짜지 말고 형제 패턴 재사용. **`tried_but_rejected` 에 있는 접근은 다시 시도하지 말 것 — 이미 폐기된 길.**"
 
 → 비슷한 N 개 작업 (예: format handler N 개, CRUD 화면 N 개) 에서 첫 sub-task 가 reference implementation 이 되고 나머지가 그 패턴을 따라감. 일관성 확보.
 
-각 dev subagent 는 **3가지 중 하나** 반환:
-
-| 반환 | 의미 |
-|---|---|
-| `WORK_SUMMARY:` + `TASK_DONE` | 정상 완료 |
-| `ESCALATE: <이유>` | 진행 불가 |
-| `SUGGEST_REVISION:` 블록 | brief 와 코드 현실 충돌 또는 동사 모호 → **Tech Lead 한테 돌아가 재설계** (3a) |
-
-`WORK_SUMMARY` 는 role 별로 보관 — step 5 의 fix Task spawn 때 후임 에이전트한테 전임자 컨텍스트로 끼움.
-
-**Dev 는 사용자에게 직접 묻지 않음.** 모든 모호함·충돌은 Tech Lead 으로 돌아감. Tech Lead 이 코드 추가 확인 후 결정하거나, 그래도 모호하면 Tech Lead 이 사용자에게 informed question 을 띄움.
-
-#### 3a. `SUGGEST_REVISION` 처리 (Dev → Tech Lead → 결정 or User → Dev 재spawn)
-
-dev 반환 형태:
-
-    SUGGEST_REVISION:
-      observed:         "코드에서 발견한 사실"
-      conflict:         "brief 의 어떤 가정이 깨졌는지"
-      interpretations:  # 동사 해석이 둘 이상 합리적일 때만 (선택)
-        - { label: "A", description: "...", scope: "..." }
-        - { label: "B", description: "...", scope: "..." }
-      recommendation:   "A"   # dev 의 의견 (선택)
-      proposal:         "Tech Lead 한테 던지는 권장 수정안"
-
-orchestrator:
-1. `Task(subagent_type: "lead")` 재호출 (revision mode) — prompt 에 원본 user 요청 + 이전 sub-task brief + dev 의 SUGGEST_REVISION 전체
-2. Tech Lead 이 **두 가지 응답** 중 하나 반환:
-
-   **(a) Decide — brief 수정해서 진행**:
-   ```json
-   { "revision": true, "subtask": { 수정된 brief }, "reasoning": "..." }
-   ```
-   → 수정된 brief 로 dev 재spawn.
-
-   **(b) Escalate — 사용자 확인 필요**:
-   ```json
-   {
-     "revision": true,
-     "needs_user": true,
-     "question": {
-       "observed": "...", "ambiguity": "...",
-       "options": [
-         { "label": "A", "description": "...", "scope": "..." },
-         { "label": "B", "description": "...", "scope": "..." }
-       ],
-       "recommendation": "A"
-     },
-     "branches": {
-       "A": { "title": "...", "targets": [...], "brief": "A 선택 시 brief", "depends_on": [] },
-       "B": { "title": "...", "targets": [...], "brief": "B 선택 시 brief", "depends_on": [] }
-     },
-     "reasoning": "..."
-   }
-   ```
-   → 3b 처리로 분기.
-
-상태 라인:
-> 🔄 **Revise** [`<role>` · `<sub-task title>`] — round `<n>`
-
-**라운드 제한**: revision 라운드 **최대 2회**. 3회째도 미해결이면 자동 escalate-to-user 강제.
-
-#### 3b. Tech Lead 의 사용자 escalation 처리
-
-Tech Lead 이 `needs_user: true` 반환한 경우 orchestrator:
-
-1. 부모 chat 에 표시:
-
-   > 🤔 **확인 필요** [`<role>` · `<sub-task title>`]
-   >
-   > 코드 분석: `<observed>`
-   > 모호함: `<ambiguity>`
-   >
-   >   A. `<option A label>` — `<scope>`
-   >   B. `<option B label>` — `<scope>`
-   >
-   > 추천: `<recommendation>`. 어떻게 갈까?
-
-2. 사용자 응답 (다음 user message) 받음
-3. 응답 매칭:
-   - "A" / "B" 라벨로 응답 → `branches[label]` 를 brief 로 사용 → dev 재spawn
-   - 다른 답 (예: "C 안 만들어줘") → Tech Lead 재호출 (응답을 context 에 박아서) → Tech Lead 이 새 revised brief 반환
-
-상태 라인 (대기 중):
-> 🤔 **Ask** [`<role>` · `<sub-task title>`] — awaiting user input
+각 dev 는 **공통 규약 A** 의 3-type 중 하나 반환. `SUGGEST_REVISION` 반환 시 **공통 규약 B** 처리.
 
 layer 끝나면 한 줄:
 
 > ✅ **Layer `<n>`** — `<done>/<total>` done · escalations: `<목록 또는 none>`
 
-각 dev 의 반환 (`WORK_SUMMARY` + `TASK_DONE` 또는 `ESCALATE` 또는 `SUGGEST_REVISION`) 을 `_workspace/${RUN_ID}/03-impl/layer-<n>/<role>-<idx>.md` 에 저장. brief, dev 반환, 처리 결과 포함.
-
-subagent 가 ESCALATE 해도 **파이프라인 중단 금지**. 해당 sub-task 만 escalated 마킹하고, 그것에 의존하지 않는 layer 는 계속 진행. 최종 요약에서 escalation 들 노출.
+저장 (공통 규약 D): `03-impl/layer-<n>/<role>-<idx>.md` (brief, dev 반환, 처리 결과).
 
 ### 4. QC 리뷰 (병렬 · 4명)
 
@@ -318,7 +319,7 @@ subagent 가 ESCALATE 해도 **파이프라인 중단 금지**. 해당 sub-task 
 
 > 🔍 **QC** — total `<N>` findings (blocker `<a>` · critical `<b>` · major `<c>` · minor `<d>` · nit `<e>`)
 
-전 findings 합본을 `_workspace/${RUN_ID}/04-qc/iter-<n>.json` 에 저장 (`<n>` = Ralph iter 카운터, 초기 = `0`).
+저장 (공통 규약 D): `04-qc/iter-<n>.json` (`<n>` = Ralph iter 카운터, 초기 = `0`).
 
 ### 5. Ralph Loop (수렴할 때까지)
 
@@ -336,15 +337,15 @@ a. **Route by category** — 각 non-`nit` finding 을 담당 role 로 매핑:
 
 b. **Group by role**. role 마다 Task 1개씩 **병렬 spawn** (한 메시지에 N Task). 프롬프트에 다음을 모두 포함:
    - 원본 user 요청 (한 줄)
-   - 해당 role 이 직전에 반환한 **WORK_SUMMARY** (있으면 — 전임의 files_touched / key_decisions / assumptions / not_done)
+   - 해당 role 이 직전에 반환한 **WORK_SUMMARY** (있으면 — 전임의 files_touched / key_decisions / assumptions / not_done / tried_but_rejected). `tried_but_rejected` 접근은 다시 시도 금지.
    - 이번 iter 가 다룰 finding 목록
    - 지시: "편집 전에 `git diff HEAD` 로 현재 코드 상태 확인. **diff 가 ground truth — summary 와 다르면 diff 를 신뢰.** 각 finding 을 고친 뒤 `WORK_SUMMARY` + `TASK_DONE` 반환."
 
-   **Fix dev 도 동일 3-type 반환 contract 적용** — `WORK_SUMMARY+TASK_DONE` / `ESCALATE` / `SUGGEST_REVISION`. SUGGEST_REVISION 발동 시 step 3a 와 동일 처리 (Tech Lead 재호출 → 결정 또는 needs_user escalation). Dev 가 사용자에게 직접 묻지 않음 — 항상 Tech Lead 경유.
+   Fix dev 도 **공통 규약 A** 동일 적용. `SUGGEST_REVISION` 시 **공통 규약 B**.
 
 c. **모든 dev Task 가 끝나면 step 4 (QC 4종 병렬) 재실행**.
 
-d. **종료 조건** (Ralph — 상태로만 판정, 외부 카운터 없음):
+d. **종료 조건** (상태로만 판정, 외부 카운터 없음):
    - non-`nit` findings 가 0 → ✅ 수렴 성공, 루프 종료
    - 같은 finding (제목 또는 파일+카테고리) 이 **2회 연속 미해결** → 그 finding 을 `STUCK` 으로 마킹하고 다음 iter 의 fix 대상에서 제외 (다른 finding 들은 계속 처리)
    - 모든 잔여 finding 이 `STUCK` 으로 마킹됨 → ⚠ 수렴 실패, 루프 종료 (최종 요약에서 escalation 으로 보고)
@@ -357,11 +358,7 @@ e. **사이클마다 한 줄 출력**:
 
    > 🔁 **iter `<i>` result** — fixed `<x>`, new `<y>`, stuck `<z>`, remaining `<r>`
 
-f. **사이클 결과 저장** — `_workspace/${RUN_ID}/05-ralph/iter-<i>.md` 에 다음 모두 기록:
-   - finding 의 role-매핑 결정
-   - 각 role 의 dev dispatch 결과 (WORK_SUMMARY)
-   - iter 결과 통계 (fixed / new / stuck / remaining)
-   - 새 QC findings 는 `04-qc/iter-<i>.json` 에 별도 저장 (위 step 4 와 동일 경로 규약).
+f. **저장 (공통 규약 D)** — `05-ralph/iter-<i>.md` (role 매핑 결정 / 각 role dev dispatch 결과 (WORK_SUMMARY) / iter 통계). 새 QC findings 는 `04-qc/iter-<i>.json` 별도.
 
 **중요**: QC 가 새 finding 을 발견할 수 있음. 매 iter 의 QC 결과는 누적이 아닌 그 시점 코드 기준 — `STUCK` 마킹은 "같은 제목+카테고리의 finding 이 다시 떴는가" 로 판정.
 
@@ -386,7 +383,7 @@ Step 5 Ralph QC 가 clean 으로 수렴한 뒤, Tech Lead 한테 **최종 accept
 |---|---|
 | `APPROVE` | `user_report_md` 필드를 추출해 `_workspace/${RUN_ID}/97-user-report.md` 에 저장. Step 7 로 진행 |
 | `REJECT` | `fix_directives` 를 finding 형태로 변환 → Step 5 (Ralph QC) 한 번 더 → 통과 시 Step 6 재실행 |
-| `NEEDS_USER` | 사용자에게 informed question (3b 와 동일 처리) → 응답 → `branches[answer].fix_directives` 적용 |
+| `NEEDS_USER` | **공통 규약 C** 처리 (`<context label>` = `Acceptance Review`) → 응답 → `branches[answer].fix_directives` 적용 |
 
 상태 라인 (review 시작):
 > 🔎 **Review** — Tech Lead 검토 중...
@@ -399,7 +396,7 @@ review 결과:
 - 같은 핵심 `fix_directive` 가 **2회 연속 미해결** → 그 directive 를 `STUCK` 으로 마킹 (다른 directives 는 계속 처리)
 - 모든 잔여 directive 가 STUCK → ⚠ Review 수렴 실패, 자동 NEEDS_USER 로 escalate
 
-각 review round 의 응답 (verdict + fix_directives + intent_match) 을 `_workspace/${RUN_ID}/06-review/round-<n>.json` 에 저장.
+저장 (공통 규약 D): `06-review/round-<n>.json` (verdict + fix_directives + intent_match).
 
 루프 끝난 뒤:
 > 🏁 **Review done** — `<round 수>` rounds · verdict=`<final>`

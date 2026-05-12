@@ -85,6 +85,7 @@ C. **영향 범위가 brief 가 암시한 것과 일치하나?**
       key_decisions: [핵심 선택 — 왜 X 가 아니라 Y]
       assumptions:   [기존 코드/의존성에 대해 가정한 것]
       not_done:      [의도적으로 안 한 것 — 빈 배열이라도 명시]
+      tried_but_rejected: [해봤다 폐기한 접근 + 폐기 이유 — `{ approach, reason }` 객체 배열, 없으면 빈 배열]
 
 마지막 줄에 `TASK_DONE` (단독).
 
