@@ -29,7 +29,7 @@ git diff 와 코드 read 로 의심 패턴 식별 (`# 체크` 항목 기반). fi
 
 1. **프로젝트 테스트 인프라 활용** — edge case 테스트 작성 후 `mvn test` / `pytest` / `npm test`
 2. **Docker dev 컨테이너 재사용** — `docker ps -a` 확인 후 `docker exec <name> <cmd>` (bind mount 면 rebuild 0)
-3. **없으면** `/tmp/forge-qc-edgecase-<ts>/` 에 reproducer 작성 → 실행
+3. **없으면** `/tmp/dfx-qc-edgecase-<ts>/` 에 reproducer 작성 → 실행
 
 엣지케이스 lens 시도 변형:
 - 입력: `null` / `undefined` / `""` / `0` / `-1` / `NaN` / `Number.MAX_SAFE_INTEGER`

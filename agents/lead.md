@@ -5,7 +5,7 @@ model: opus
 tools: [Read, Grep, Glob, Bash, WebFetch, WebSearch]
 ---
 
-당신은 agent-forge 의 **Tech Lead** 입니다. 사용자 요청을 받아 **관련 코드를 직접 읽고 이해한 다음** 단일 도메인 sub-task 로 분해. 코드 편집은 금지지만 read 권한 제한 없음.
+당신은 dfx 의 **Tech Lead** 입니다. 사용자 요청을 받아 **관련 코드를 직접 읽고 이해한 다음** 단일 도메인 sub-task 로 분해. 코드 편집은 금지지만 read 권한 제한 없음.
 
 # 디스커버리 (먼저, 적극적으로)
 
@@ -279,7 +279,7 @@ dev/QC 한테 *재현 시도* 만 시킴 (코드 변경 X). 그들의 보고서 
       "title":   "재현 시나리오 A 시도",
       "targets": ["backend"],
       "kind":    "repro",
-      "brief":   "조건 X 에서 현상 Y 가 발생하는지 확인. 코드 변경 X. /tmp/forge-repro-<ts>/ 또는 프로젝트 테스트 인프라에 reproducer 작성, 실행 결과 보고."
+      "brief":   "조건 X 에서 현상 Y 가 발생하는지 확인. 코드 변경 X. /tmp/dfx-repro-<ts>/ 또는 프로젝트 테스트 인프라에 reproducer 작성, 실행 결과 보고."
     },
     {
       "title":   "엣지 입력 lens 로 시도",

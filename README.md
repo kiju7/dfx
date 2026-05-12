@@ -1,13 +1,13 @@
-# agent-forge
+# dfx
 
 > Claude Code 안에서 **다중 전문 에이전트가 협업하는 엔지니어링 파이프라인**.
-> `/forge "X 해줘"` 한 번이면 — 분류 · 계획 · 구현 · 검증 · 리뷰가 자동으로 흘러갑니다.
+> `/dfx "X 해줘"` 한 번이면 — 분류 · 계획 · 구현 · 검증 · 리뷰가 자동으로 흘러갑니다.
 
 100% 네이티브 — Claude Code 의 `Task` subagent 만 사용. 외부 서버·DB·대시보드 없음.
 
 ---
 
-![agent-forge pipeline](docs/pipeline.svg)
+![dfx pipeline](docs/pipeline.svg)
 
 ## 핵심 기능
 
@@ -26,16 +26,16 @@
 ## 설치
 
 ```
-/plugin marketplace add kiju7/agent-forge
-/plugin install agent-forge@kiju7-agent-forge
+/plugin marketplace add kiju7/dfx
+/plugin install dfx@kiju7-dfx
 ```
 
-또는 `/plugin` GUI → **Discover** 탭 → `agent-forge` → Install.
+또는 `/plugin` GUI → **Discover** 탭 → `dfx` → Install.
 
 ## 사용
 
 ```
-/forge "<your engineering request>"
+/dfx "<your engineering request>"
 ```
 
 예시:
@@ -77,7 +77,7 @@
 ✅ Layer 0 — 1/1 done
 🔍 QC — total 0 findings
 🔎 Review — APPROVE · intent_match=yes
-🏁 agent-forge done
+🏁 dfx done
 
 📄 사용자 보고서
 # 작업 요약
@@ -114,7 +114,7 @@
 <details>
 <summary><b>📁 Audit log 구조</b></summary>
 
-매 /forge 호출은 `_workspace/<run-id>/` 에 단계별 기록 남김:
+매 /dfx 호출은 `_workspace/<run-id>/` 에 단계별 기록 남김:
 
 ```
 _workspace/20260512-153022-a3f4/
@@ -169,7 +169,7 @@ tools: [Read, Grep, Glob, Bash]
 당신의 역할은...
 ```
 
-`skills/forge/SKILL.md` 의 라우팅에 추가하면 끝.
+`skills/dfx/SKILL.md` 의 라우팅에 추가하면 끝.
 
 ### 모델 변경
 
@@ -178,12 +178,12 @@ tools: [Read, Grep, Glob, Bash]
 ### 디렉토리 구조
 
 ```
-agent-forge/
+dfx/
 ├── .claude-plugin/
 │   ├── plugin.json
 │   └── marketplace.json
-├── commands/forge.md         # /forge 슬래시 커맨드
-├── skills/forge/SKILL.md     # 파이프라인 오케스트레이션
+├── commands/dfx.md         # /dfx 슬래시 커맨드
+├── skills/dfx/SKILL.md     # 파이프라인 오케스트레이션
 └── agents/                   # 13 subagents
     ├── triage.md / lead.md
     ├── frontend / backend / database / devops / daemon / ux / ai
@@ -195,8 +195,8 @@ agent-forge/
 <details>
 <summary><b>⚙️ 동작 원리</b></summary>
 
-1. `/forge` = `commands/forge.md` → `forge` skill 호출
-2. Claude Code 가 `skills/forge/SKILL.md` 를 시스템 프롬프트에 합쳐 본 어시스턴트가 오케스트레이터 역할
+1. `/dfx` = `commands/dfx.md` → `dfx` skill 호출
+2. Claude Code 가 `skills/dfx/SKILL.md` 를 시스템 프롬프트에 합쳐 본 어시스턴트가 오케스트레이터 역할
 3. 본 어시스턴트가 `Task(subagent_type: "...")` 호출로 13 개 subagent (`agents/*.md`) 를 격리 컨텍스트에서 실행
 4. 같은 메시지에 여러 Task 호출 = 병렬 / 다음 메시지 = 순차
 
@@ -208,18 +208,18 @@ Claude Code 의 [Task subagent 기능](https://docs.claude.com/en/docs/claude-co
 <summary><b>📦 수동 설치 (오프라인 / 마켓플레이스 우회)</b></summary>
 
 ```bash
-git clone https://github.com/kiju7/agent-forge.git /tmp/agent-forge
+git clone https://github.com/kiju7/dfx.git /tmp/dfx
 mkdir -p ~/.claude/{commands,agents,skills}
-cp    /tmp/agent-forge/commands/forge.md ~/.claude/commands/
-cp -r /tmp/agent-forge/agents/*          ~/.claude/agents/
-cp -r /tmp/agent-forge/skills/forge      ~/.claude/skills/
-rm -rf /tmp/agent-forge
+cp    /tmp/dfx/commands/dfx.md ~/.claude/commands/
+cp -r /tmp/dfx/agents/*          ~/.claude/agents/
+cp -r /tmp/dfx/skills/dfx      ~/.claude/skills/
+rm -rf /tmp/dfx
 ```
 
 </details>
 
 ---
 
-- **레포** · <https://github.com/kiju7/agent-forge>
+- **레포** · <https://github.com/kiju7/dfx>
 - **레퍼런스** · [revfactory/harness](https://github.com/revfactory/harness)
 - **이슈** · GitHub Issues

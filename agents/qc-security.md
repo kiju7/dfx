@@ -37,7 +37,7 @@ git diff 와 코드 read 로 의심 패턴 식별 (`# 체크` 항목 기반). fi
    - Path traversal: `../../../etc/passwd`
 3. **Auth 우회 시도**: token 조작 / session 변경 / middleware bypass URL
 4. **Docker dev 컨테이너 재사용** — `docker exec` 로 격리 실행 (rebuild 0)
-5. **없으면** `/tmp/forge-qc-security-<ts>/` 에 reproducer 작성
+5. **없으면** `/tmp/dfx-qc-security-<ts>/` 에 reproducer 작성
 
 응답 / 로그 / DB 상태 관찰 → 페이로드 통과? 막혔나? 누출됐나?
 

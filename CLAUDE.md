@@ -1,6 +1,6 @@
-# agent-forge
+# dfx
 
-Multi-agent engineering pipeline that runs natively inside Claude Code via `Task` subagents. The user invokes `/forge "<request>"`; an orchestrator skill triages, decomposes via Tech Lead (which reads code first), dispatches parallel specialists, runs QC reviewers, and auto-fixes findings — all in one Claude Code session with no external services.
+Multi-agent engineering pipeline that runs natively inside Claude Code via `Task` subagents. The user invokes `/dfx "<request>"`; an orchestrator skill triages, decomposes via Tech Lead (which reads code first), dispatches parallel specialists, runs QC reviewers, and auto-fixes findings — all in one Claude Code session with no external services.
 
 ## Layout
 
@@ -8,17 +8,17 @@ Multi-agent engineering pipeline that runs natively inside Claude Code via `Task
 .claude-plugin/
   plugin.json                  # Plugin manifest
   marketplace.json             # Marketplace entry — enables /plugin install
-commands/forge.md              # /forge entry point
-skills/forge/SKILL.md          # Pipeline orchestration logic (read this for the flow)
+commands/dfx.md              # /dfx entry point
+skills/dfx/SKILL.md          # Pipeline orchestration logic (read this for the flow)
 agents/                        # 13 native subagents (triage, lead, 7 devs, 4 QC)
 ```
 
 Claude Code 플러그인은 **플러그인 루트** 의 `commands/`, `agents/`, `skills/` 를 자동 스캔. `.claude/` 안에 넣으면 안 잡힘.
 
-## How a /forge invocation flows
+## How a /dfx invocation flows
 
-1. User: `/forge "<request>"` → invokes `commands/forge.md`
-2. That command instructs the assistant to invoke the `forge` skill
+1. User: `/dfx "<request>"` → invokes `commands/dfx.md`
+2. That command instructs the assistant to invoke the `dfx` skill
 3. The skill's body becomes the orchestration instructions for THIS conversation
 4. The assistant spawns subagents via `Task(subagent_type: "<name>", prompt: "...")` calls
 5. **Parallel layers** = multiple Task calls in one assistant message; **sequential** = separate messages
@@ -34,8 +34,8 @@ Claude Code 플러그인은 **플러그인 루트** 의 `commands/`, `agents/`, 
 
 ## Editing rules
 
-- New role or QC reviewer → add an `.md` file under `agents/` with frontmatter `name | description | model | tools`. Reference it from `skills/forge/SKILL.md` routing.
-- Pipeline shape changes → edit `skills/forge/SKILL.md` only.
+- New role or QC reviewer → add an `.md` file under `agents/` with frontmatter `name | description | model | tools`. Reference it from `skills/dfx/SKILL.md` routing.
+- Pipeline shape changes → edit `skills/dfx/SKILL.md` only.
 - Per-run audit log lives at `_workspace/<run-id>/` (gitignored). Each phase appends a file: `00-request.md`, `01-triage.json`, `02-plan.json`, `03-impl/`, `04-qc/`, `05-ralph/`, `06-review/`, `99-summary.md`.
 - Tech Lead has 6 modes (see `agents/lead.md`): initial plan / user-escalation / dev-SUGGEST_REVISION handling / **Acceptance Review** (Ralph 수렴 패턴, APPROVE 까지 반복) / **Bug Triage & Reproduction** (kind=bug + 재현 불명 시 dev/QC 한테 repro task 발주 후 plan) / **Verification Choice** (검증 방식 선택지가 의미있을 때 사용자에게 informed question).
 - Dev / QC subagents have a special `Repro 모드` activated when their sub-task has `kind: "repro"` — they investigate (not change code) and return `REPRO_REPORT` instead of `WORK_SUMMARY` / findings.

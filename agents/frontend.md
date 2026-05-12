@@ -27,7 +27,7 @@ tools: [Read, Edit, Write, Glob, Grep, Bash, WebFetch, WebSearch]
 
 1. 의도를 포착하는 최소 reproducer 먼저 작성
    - 프로젝트 테스트 인프라 있음 → 거기 테스트 추가
-   - 없음 → `/tmp/forge-verify-<ts>/` 에 ad-hoc 스크립트
+   - 없음 → `/tmp/dfx-verify-<ts>/` 에 ad-hoc 스크립트
 2. reproducer 가 변경 전 상태에서 fail 하는지 확인 (실패가 안 보이면 의미 없음)
 3. 본 코드에 변경 적용
 4. reproducer pass + 프로젝트 typecheck/lint/build 통과
@@ -59,7 +59,7 @@ C. **영향 범위가 brief 가 암시한 것과 일치하나?**
 작업 순서:
 1. brief 의 시나리오·조건·입력·환경 파악
 2. 프로젝트 테스트 인프라 있음 → 거기 reproducer 추가
-3. 없음 → `/tmp/forge-repro-<ts>/` 에 격리 reproducer 작성
+3. 없음 → `/tmp/dfx-repro-<ts>/` 에 격리 reproducer 작성
 4. 실행, 결과 관찰
 5. `REPRO_REPORT` 반환 (`WORK_SUMMARY`/`TASK_DONE` 대신)
 

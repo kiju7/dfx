@@ -30,7 +30,7 @@ CI / Dockerfile / 배포 스크립트 변경은 "한 번 돌려보지 않으면 
 1. 의도를 포착하는 최소 reproducer 먼저 작성
    - GitHub Actions → `act` 같은 로컬 러너로 미니 워크플로 검증, 또는 임시 워크플로 파일에 핵심 step 만 추출
    - Dockerfile → 최소 base image + 핵심 RUN 만 담은 `Dockerfile.verify` 로 build
-   - 셸 스크립트 → `/tmp/forge-verify-<ts>/` 에 격리 dry-run
+   - 셸 스크립트 → `/tmp/dfx-verify-<ts>/` 에 격리 dry-run
 2. reproducer 가 변경 전 상태에서 fail 하는지 확인
 3. 본 인프라 파일에 변경 적용
 4. 본 파일 syntax / lint 통과 (`actionlint`, `hadolint`, `shellcheck` 있으면)
@@ -61,7 +61,7 @@ C. **영향 범위가 brief 가 암시한 것과 일치하나?**
 
 작업 순서:
 1. brief 의 시나리오 파악 (워크플로·이미지·잡·시점)
-2. `act` 같은 로컬 러너로 워크플로 dry-run, 또는 `/tmp/forge-repro-<ts>/` 에 격리 인프라 작성
+2. `act` 같은 로컬 러너로 워크플로 dry-run, 또는 `/tmp/dfx-repro-<ts>/` 에 격리 인프라 작성
 3. 실행, 결과 관찰 (로그·exit code·시간)
 4. `REPRO_REPORT` 반환
 

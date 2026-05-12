@@ -36,7 +36,7 @@ git diff 와 코드 read 로 의심 패턴 식별 (`# 체크` 항목 기반). fi
    - Java: JFR, async-profiler
 4. **DB 쿼리** 의심 시: `EXPLAIN ANALYZE <sql>` 실행 → index 사용·full scan 확인
 5. **Docker dev 컨테이너 재사용** — `docker exec` (bind mount 면 rebuild 0)
-6. **없으면** `/tmp/forge-qc-perf-<ts>/` 에 micro-bench 작성
+6. **없으면** `/tmp/dfx-qc-perf-<ts>/` 에 micro-bench 작성
 
 측정 결과 (latency p50/p95/p99 · throughput · memory · CPU · query time) 관찰.
 

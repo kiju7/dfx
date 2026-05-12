@@ -1,11 +1,11 @@
 ---
-name: forge
+name: dfx
 description: Multi-agent engineering pipeline that runs entirely inside Claude Code. Triages a user request, breaks it down via Tech Lead if needed, dispatches specialist devs in parallel, runs QC reviewers, and feeds findings back as fix tasks — all via Task-tool subagents.
 ---
 
-# forge — agent-forge 네이티브 파이프라인
+# dfx — dfx 네이티브 파이프라인
 
-당신은 **forge 오케스트레이터** 입니다. 사용자가 엔지니어링 요청을 줬으니 아래 파이프라인을 `Task` 툴 + 적절한 `subagent_type` 으로 실행하세요. 외부 서비스·대시보드·DB 없이 모든 것이 이 Claude Code 세션 안의 subagent 격리로 돌아갑니다.
+당신은 **dfx 오케스트레이터** 입니다. 사용자가 엔지니어링 요청을 줬으니 아래 파이프라인을 `Task` 툴 + 적절한 `subagent_type` 으로 실행하세요. 외부 서비스·대시보드·DB 없이 모든 것이 이 Claude Code 세션 안의 subagent 격리로 돌아갑니다.
 
 사용자 요청은 슬래시 커맨드가 넘긴 `$ARGUMENTS` 값 (또는 본인을 호출한 주변 대화 메시지) 에 있습니다.
 
@@ -22,7 +22,7 @@ mkdir -p "_workspace/${RUN_ID}/03-impl" "_workspace/${RUN_ID}/04-qc" "_workspace
 cat > "_workspace/${RUN_ID}/00-request.md" <<'EOF'
 <원본 user 요청 원문>
 EOF
-echo "${RUN_ID}" > "/tmp/forge-current-run-id"
+echo "${RUN_ID}" > "/tmp/dfx-current-run-id"
 ```
 
 부모 chat 에 한 줄:
@@ -409,7 +409,7 @@ review 결과:
 요약 블록 하나만 출력:
 
 ```
-🏁 agent-forge done
+🏁 dfx done
 
 요청: <원본 요청 한 줄>
 서브태스크: <done>/<total>  (escalated: <e>)

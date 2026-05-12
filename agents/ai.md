@@ -28,7 +28,7 @@ tools: [Read, Edit, Write, Glob, Grep, Bash, WebFetch, WebSearch]
 
 1. 의도를 포착하는 최소 reproducer 먼저 작성
    - 프로젝트에 eval 하네스 있음 → 거기 테스트 케이스 추가
-   - 없음 → `/tmp/forge-verify-<ts>/` 에 1~2개 핵심 입력으로 미니 프롬프트 실행 스크립트
+   - 없음 → `/tmp/dfx-verify-<ts>/` 에 1~2개 핵심 입력으로 미니 프롬프트 실행 스크립트
 2. reproducer 가 변경 전 상태에서 fail / 다른 출력을 내는지 확인
 3. 본 코드에 변경 적용 (agent .md / SKILL.md / 어댑터 코드)
 4. reproducer pass + 프로젝트 typecheck / lint 통과 + 출력 contract (JSON 스키마 / `TASK_DONE` 등) 유지 확인
@@ -60,7 +60,7 @@ C. **영향 범위가 brief 가 암시한 것과 일치하나?**
 작업 순서:
 1. brief 의 시나리오 파악 (어떤 입력에서 에이전트가 이상한 출력 내는지 등)
 2. 프로젝트 eval 하네스 있음 → 거기 핵심 케이스 추가
-3. 없음 → `/tmp/forge-repro-<ts>/` 에 미니 프롬프트 실행 스크립트
+3. 없음 → `/tmp/dfx-repro-<ts>/` 에 미니 프롬프트 실행 스크립트
 4. 실행, 출력 관찰 (JSON 스키마·TASK_DONE·예상 동작 대비)
 5. `REPRO_REPORT` 반환
 

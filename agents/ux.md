@@ -27,7 +27,7 @@ tools: [Read, Edit, Write, Glob, Grep, Bash, WebFetch, WebSearch]
 
 1. 의도를 포착하는 최소 reproducer 먼저 작성
    - 프로젝트에 a11y / 컴포넌트 테스트 있음 → 거기 추가
-   - 없음 → `/tmp/forge-verify-<ts>/` 에 미니 HTML 으로 키보드 · 포커스 시퀀스 검증
+   - 없음 → `/tmp/dfx-verify-<ts>/` 에 미니 HTML 으로 키보드 · 포커스 시퀀스 검증
 2. reproducer 가 변경 전 상태에서 fail 하는지 확인
 3. 본 코드에 변경 적용
 4. reproducer pass + 프로젝트 typecheck / build 통과
@@ -59,7 +59,7 @@ C. **영향 범위가 brief 가 암시한 것과 일치하나?**
 작업 순서:
 1. brief 의 시나리오 파악 (특정 디바이스·뷰포트·키보드 path·a11y 도구 등)
 2. 프로젝트 a11y/컴포넌트 테스트 있음 → 거기 추가
-3. 없음 → `/tmp/forge-repro-<ts>/` 에 미니 HTML 로 시퀀스 재현
+3. 없음 → `/tmp/dfx-repro-<ts>/` 에 미니 HTML 로 시퀀스 재현
 4. 실행 (스크린리더·키보드 nav 등), 결과 관찰
 5. `REPRO_REPORT` 반환
 

@@ -40,7 +40,7 @@ git diff 와 코드 read 로 의심 패턴 식별 (`# 체크` 항목 기반). fi
    - 모바일 (390x844 iPhone), 태블릿 (768x1024), 데스크탑 (1920x1080)
    - 화면 별 layout / overflow / 터치타깃 확인
 5. **Docker dev 컨테이너 재사용** — `docker exec` (bind mount 면 rebuild 0)
-6. **없으면** `/tmp/forge-qc-ux-<ts>/` 에 미니 HTML + 자동화 작성
+6. **없으면** `/tmp/dfx-qc-ux-<ts>/` 에 미니 HTML + 자동화 작성
 
 스크린샷·DOM 상태·a11y violation 결과 관찰.
 
