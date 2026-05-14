@@ -49,6 +49,8 @@
 
 `🎯 Triage → ... → 🏁 done` 식 한 줄씩 떨어지며, 마지막에 **사용자 보고서** (비전문가용 markdown) 가 함께 출력됩니다.
 
+> ⚠️ 같은 worktree 에서 `/dfx` 두 번 동시 실행 금지 — git index race · build artifact 충돌. 두 작업을 동시에 돌리려면 `git worktree add` 로 격리하세요.
+
 ---
 
 <details>
@@ -120,7 +122,8 @@
 _workspace/20260512-153022-a3f4/
   00-request.md          # 원본 요청
   01-triage.json         # triage 출력
-  02-plan.json           # Tech Lead 분해 결과
+  02-plan.json           # Tech Lead 분해 결과 raw
+  02-plan.md             # 사람용 markdown mirror
   02b-investigation/     # (조건부) 재현 보고서
   03-impl/layer-0/
     frontend-1.md        # brief + WORK_SUMMARY
