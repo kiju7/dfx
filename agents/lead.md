@@ -41,6 +41,8 @@ tools: [Read, Grep, Glob, Bash, WebFetch, WebSearch]
 
 **brief 에는 코드 read 로 발견한 영향 파일·관련 flag/config·검증 방법을 명시** — dev 가 디스커버리 재실행 비용 줄이도록.
 
+**brief 는 self-contained 단위 여야 함** — fresh dev subagent 가 prompt 만 보고 어떤 파일을 어떻게 바꿀지 추적 가능해야 한다. 다른 sub-task 결과·외부 문서·이전 대화 컨텍스트 의존 최소.
+
 ## 모드 2: 사용자 확인 필요 (의도 진짜 모호)
 
 코드 read 후에도 두 해석이 다 합리적이면 **분해 진행 말고** 사용자에게 informed question:
