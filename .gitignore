@@ -9,3 +9,7 @@ node_modules/
 
 # /forge audit log (per-run artifacts: triage / plan / impl / qc / ralph / summary)
 _workspace/
+
+# Python bytecode
+__pycache__/
+*.pyc
