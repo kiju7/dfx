@@ -295,7 +295,7 @@ sub-task 를 의존성 layer 로 묶음:
 - Layer 1 = deps 가 모두 layer 0 에 있는 sub-task
 - ... 이런 식
 
-**같은 layer 안에서는 한 어시스턴트 메시지에 `Task` 호출 N개를 동시에 띄워 병렬 실행**. 각 Task 의 `subagent_type` = sub-task 의 첫 번째 target role (`frontend | backend | database | devops | daemon | ai | ux`). brief 를 프롬프트로 넘기고, 원본 사용자 요청도 컨텍스트로 함께 전달.
+**같은 layer 안에서는 한 어시스턴트 메시지에 `Task` 호출 N개를 동시에 띄워 병렬 실행**. 각 Task 의 `subagent_type` = sub-task 의 첫 번째 target role (`frontend | backend | database | devops | daemon | ai | ux`). brief 를 프롬프트로 넘기고, 원본 사용자 요청도 컨텍스트로 함께 전달. **sub-task 에 `spike: true` 가 있으면 그 사실을 dev 프롬프트에 명시** (아래 "설계 먼저 + spike" 주입 지시가 발동하도록).
 
 **Same-role 직렬화** (강제 룰, 예외 없음)
 
@@ -314,6 +314,17 @@ sub-task 를 의존성 layer 로 묶음:
 
 → 비슷한 N 개 작업 (예: format handler N 개, CRUD 화면 N 개) 에서 첫 sub-task 가 reference implementation 이 되고 나머지가 그 패턴을 따라감. 일관성 확보.
 
+**dev 프롬프트에 주입할 공통 지시** (brief · 원본 요청과 함께):
+
+- **설계 먼저 (non-trivial 일 때)** — 코드를 바로 쓰지 말고, 편집 전에 짧은 구현 스케치를 세운다: 건드릴 함수·시그니처, 새 변수/데이터 모양, 편집할 파일·지점 목록, 검증 방법. 이 스케치 단계에서 brief 가정이 코드와 충돌하거나 접근이 불확실하면 거기서 `SUGGEST_REVISION` (공통 규약 B) 으로 빠진다. **trivial (한 줄·rename·trivial config) 은 스케치 생략** — 비례적으로.
+- **spike (sub-task 에 `spike: true` 일 때만)** — 본 프로젝트 파일에 바로 통합하지 말고:
+  1. `/tmp/dfx-spike-<ts>/` (또는 프로젝트 scratch) 에 그 기능·접근만 최소 PoC 작성
+  2. PoC 실제 동작 확인 — 접근이 유효한지 (외부 의존성이면 실제 호출로). 틀렸으면 접근 교체 후 재시도
+  3. 검증된 접근을 본 프로젝트 파일에 통합 — **sandbox 코드는 throwaway, 그대로 복붙 금지. 프로젝트 컨벤션에 맞춰 재작성**
+  4. sandbox 정리
+  5. `WORK_SUMMARY` 의 `key_decisions` 에 "spike 에서 검증한 것 / 통합 시 달라진 점" 명시
+  - `spike` 필드가 없거나 `false` 면 이 절 무시하고 바로 구현.
+
 각 dev 는 **공통 규약 A** 의 3-type 중 하나 반환. `SUGGEST_REVISION` 반환 시 **공통 규약 B** 처리.
 
 layer 끝나면 한 줄:
@@ -330,7 +341,7 @@ layer 끝나면 한 줄:
 각 QC Task 의 prompt 에 **반드시 다음 context 포함** (false positive 방지):
 - 원본 user 요청 (의도)
 - 누적 dev WORK_SUMMARY (모든 sub-task — files_touched / key_decisions / assumptions / not_done)
-- 지시: "git diff HEAD 로 변경 확인. 의도(요청 + WORK_SUMMARY) 관점에서 finding 판단. 의도적으로 결정된 사항은 잡지 말 것. **Phase 2 (동적 검증) mandatory — finding 후보를 실제로 재현·측정·렌더 시도 후 재현된 것만 report. Docker dev 컨테이너 (bind mount + `docker exec`) 우선 활용해 rebuild 비용 0 으로 처리.**"
+- 지시: "변경 파일을 확인 — **`git diff HEAD` 는 신규(untracked) 파일을 안 보여주므로, `git status` 로 신규 파일을 먼저 식별하고 `WORK_SUMMARY.files_touched` 의 파일들을 직접 read 할 것** (초기 구현은 대개 신규 파일이라 diff 가 빈 값). 의도(요청 + WORK_SUMMARY) 관점에서 finding 판단. 의도적으로 결정된 사항은 잡지 말 것. **Phase 2 (동적 검증) mandatory — finding 후보를 실제로 재현·측정·렌더 시도 후 재현된 것만 report. Docker dev 컨테이너 (bind mount + `docker exec`) 우선 활용해 rebuild 비용 0 으로 처리.**"
 
 각각 `{ "findings": [...] }` 반환. 전 findings 합치고 severity 별 집계.
 
@@ -351,21 +362,28 @@ a. **Route by category** — 각 non-`nit` finding 을 담당 role 로 매핑:
    - `api | worker | queue | cron | agent | prompt | tool` → `backend` / `daemon` / `ai`
    - `db` → `database`
    - `auth | security` → `backend`
-   - `perf` → finding 의 파일 경로로 추론
+   - `perf` → finding 의 `location` 파일 경로로 role 추론 (`.tsx/.jsx/.css` → frontend, 서버 코드 → backend/daemon, 쿼리·마이그레이션 → database)
    - 그 외 → `backend`
+
+   `location` 이 있으면 그 경로를 1차 근거로 라우팅. 비어 있으면 `category` 로 폴백.
 
 b. **Group by role**. role 마다 Task 1개씩 **병렬 spawn** (한 메시지에 N Task). 프롬프트에 다음을 모두 포함:
    - 원본 user 요청 (한 줄)
    - 해당 role 이 직전에 반환한 **WORK_SUMMARY** (있으면 — 전임의 files_touched / key_decisions / assumptions / not_done / tried_but_rejected). `tried_but_rejected` 접근은 다시 시도 금지.
-   - 이번 iter 가 다룰 finding 목록
-   - 지시: "편집 전에 `git diff HEAD` 로 현재 코드 상태 확인. **diff 가 ground truth — summary 와 다르면 diff 를 신뢰.** **finding 으로 지목된 코드만 수정 — 근처라도 별개 finding 이 아니면 보존, drive-by refactor 금지.** 각 finding 을 고친 뒤 `WORK_SUMMARY` + `TASK_DONE` 반환."
+   - 이번 iter 가 다룰 finding 목록 (각 finding 의 `location` = `파일:줄` 포함)
+   - 지시: "편집 전에 현재 코드 상태 확인 — `git diff HEAD` (+ 신규 파일은 `git status` 로 식별 후 직접 read; untracked 는 diff 에 안 뜸). **현재 파일 내용이 ground truth — summary 와 다르면 코드를 신뢰.** **finding 의 `location` 으로 수정 대상 파일을 바로 특정 — 타겟 재read 범위를 그 파일·인접부로 좁힐 것 (전체 재탐색 금지).** **finding 으로 지목된 코드만 수정 — 근처라도 별개 finding 이 아니면 보존, drive-by refactor 금지.** 각 finding 을 고친 뒤 `WORK_SUMMARY` + `TASK_DONE` 반환."
 
    Fix dev 도 **공통 규약 A** 동일 적용. `SUGGEST_REVISION` 시 **공통 규약 B**.
 
-c. **모든 dev Task 가 끝나면 step 4 (QC 4종 병렬) 재실행**.
+c. **모든 dev Task 가 끝나면 QC 재실행 — 단, diff·렌즈 스코프** (초기 QC = step 4 는 4종 full, 재실행은 스코프해 토큰 절약):
+   - **재실행할 렌즈** = (직전 QC 에서 non-`nit` finding 을 낸 렌즈) ∪ (이번 iter 의 diff 가 건드린 도메인의 렌즈). 둘 다 아니면 그 렌즈는 이 iter 에 **skip**.
+     - 렌즈→도메인: `qc-edgecase`=로직·파싱·경계, `qc-security`=입력처리·인증·파일/경로·역직렬화, `qc-perf`=루프·자료구조·I/O·쿼리, `qc-ux`=출력·CLI·copy·UI·a11y.
+     - 아무 렌즈도 해당 안 되면 (드묾) 직전 finding 렌즈만, 그것도 없으면 `qc-edgecase` 하나만 안전망으로.
+   - **변경 스코프 신호** = fix dev 의 `WORK_SUMMARY.files_touched` + 이번에 다룬 finding 목록 (오케스트레이터가 이미 알고 있음 — tracked/untracked 무관하게 정확). 재실행 QC 프롬프트에 "이번에 바뀐 파일 = `<files_touched>`, finding = `<…>`. 거기 집중, 전체 재스캔 불필요" 주입. QC 가 보조로 `git diff` 를 써도 되지만 **신규(untracked) 파일은 `git diff HEAD` 에 안 뜨므로** files_touched 가 1차 신호. 동적 검증도 회귀 + 해당 변경 재현 중심.
+   - → copy 한 줄 수정에 perf/security 를 재실행하지 않아 QC 토큰이 크게 준다. skip 된 렌즈의 정합성은 **수렴 직전 full sweep** (종료 조건 d 참조) 으로 보장한다.
 
 d. **종료 조건** (상태로만 판정, 외부 카운터 없음):
-   - non-`nit` findings 가 0 → ✅ 수렴 성공, 루프 종료
+   - 스코프 재실행 QC 의 non-`nit` findings 가 0 → **수렴 직전 full sweep**: 이번 루프에서 한 번이라도 skip 된 렌즈가 있으면 그 렌즈들(또는 안전하게 4종 full)을 diff 전체 대상으로 1회 재실행해 누락 회귀 확인. full sweep 도 non-`nit` 0 → ✅ 수렴 성공, 루프 종료. (skip 된 렌즈 없었으면 sweep 생략 가능.)
    - 같은 finding (제목 또는 파일+카테고리) 이 **2회 연속 미해결** → 그 finding 을 `STUCK` 으로 마킹하고 다음 iter 의 fix 대상에서 제외 (다른 finding 들은 계속 처리)
    - 모든 잔여 finding 이 `STUCK` 으로 마킹됨 → ⚠ 수렴 실패, 루프 종료 (최종 요약에서 escalation 으로 보고)
 

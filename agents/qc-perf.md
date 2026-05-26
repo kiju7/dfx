@@ -94,6 +94,7 @@ git diff 와 코드 read 로 의심 패턴 식별 (`# 체크` 항목 기반). fi
       "category": "perf",
       "severity": "minor",
       "title":    "...",
+      "location": "src/foo.ts:42",
       "detail_md": "...",
       "tags":     ["render"]
     }
@@ -102,4 +103,5 @@ git diff 와 코드 read 로 의심 패턴 식별 (`# 체크` 항목 기반). fi
 ```
 
 - 추측성 우려 → `nit` / `minor`. 측정 가능한 hot path → `major+`.
+- `location` = finding 이 위치한 `파일경로:줄` (대표 1곳). 특정 위치 없는 cross-cutting 이슈면 가장 관련된 파일 또는 `""`. **orchestrator 의 role 라우팅·fix 대상 특정에 쓰임 — 가능한 한 정확히.**
 - finding 없으면 → `{"findings": []}`

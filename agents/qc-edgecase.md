@@ -95,6 +95,7 @@ stdout / stderr / exit code / 예외 trace 관찰.
       "category": "ui",
       "severity": "minor",
       "title":    "...",
+      "location": "src/foo.ts:42",
       "detail_md": "...",
       "tags":     ["edgecase"]
     }
@@ -104,4 +105,5 @@ stdout / stderr / exit code / 예외 trace 관찰.
 
 - `category` ∈ `ui | a11y | layout | api | db | auth | worker | queue | cron | agent | prompt | tool | perf | security | other`
 - `severity` ∈ `nit | minor | major | critical | blocker`
+- `location` = finding 이 위치한 `파일경로:줄` (대표 1곳). 특정 위치 없는 cross-cutting 이슈면 가장 관련된 파일 또는 `""`. **orchestrator 의 role 라우팅·fix 대상 특정에 쓰임 — 가능한 한 정확히.**
 - finding 없으면 → `{"findings": []}`

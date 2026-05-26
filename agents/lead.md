@@ -33,7 +33,8 @@ tools: [Read, Grep, Glob, Bash, WebFetch, WebSearch]
       "title":      "단일 도메인의 명확한 단위",
       "targets":    ["frontend"],
       "brief":      "이 sub-task 가 정확히 무엇을 하는지. 코드 read 로 알아낸 영향 파일·검증 방법 명시.",
-      "depends_on": []
+      "depends_on": [],
+      "spike":      false
     }
   ]
 }
@@ -42,6 +43,19 @@ tools: [Read, Grep, Glob, Bash, WebFetch, WebSearch]
 **brief 에는 코드 read 로 발견한 영향 파일·관련 flag/config·검증 방법을 명시** — dev 가 디스커버리 재실행 비용 줄이도록.
 
 **brief 는 self-contained 단위 여야 함** — fresh dev subagent 가 prompt 만 보고 어떤 파일을 어떻게 바꿀지 추적 가능해야 한다. 다른 sub-task 결과·외부 문서·이전 대화 컨텍스트 의존 최소.
+
+### spike 판단 (조건부 — 기본 `false`)
+
+위험한 sub-task 는 dev 가 본 프로젝트 파일에 바로 손대기 전에 **격리 sandbox 에서 그 기능·접근만 최소 PoC 로 동작 검증한 뒤 통합**하도록 `"spike": true` 를 단다.
+
+**근거 (왜 QC/Ralph 로 대체 안 되나):** QC/Ralph 는 *기존 구조 안의* 버그·엣지·perf·보안은 잡지만, **접근·구조 자체가 틀린 건 못 잡고 증상만 땜질**한다. 잘못된 접근이 여러 파일에 load-bearing 으로 엮인 뒤엔 뿌리를 못 뽑는다. spike 는 그게 굳기 전에 차단 — 이게 완성도의 환원 불가능한 가치 (단순 "되돌리기 비용 절감" 이 아님 — git revert 는 AI 한테 싸다).
+
+**보수적 — 둘 중 하나 이상일 때만 `true`:**
+
+1. **접근·구조 불확실** — 핵심 로직/알고리즘/결합 방식이 코드 read 만으론 확정 안 됨. 틀리면 QC 가 증상만 땜질하게 될 작업 (까다로운 파서·상태머신·동시성·비자명 알고리즘, 또는 프로젝트 선례 없는 신규 패턴)
+2. **외부/런타임 동작 불확실** — 코드·문서로 못 푸는 것: 서드파티 API 실제 동작, 라이브러리 버전 동작, 라이브 시스템과의 결합
+
+그 외 — 한 줄 수정·기존 패턴 답습·trivial config·rename·CSS, **그리고 "통합/배관이 어려움의 전부" 인 작업 (CRUD·기존 아키텍처에 끼우기) 도 반드시 `false`**. 어려움이 통합에 있으면 spike 는 그걸 리허설 못 하므로 완성도 이득 ~0, 토큰만 낭비.
 
 ## 모드 2: 사용자 확인 필요 (의도 진짜 모호)
 
