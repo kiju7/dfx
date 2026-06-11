@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "dfx",
   "version": "1.0.0",
-  "description": "Multi-agent engineering pipeline that runs natively inside Claude Code. /dfx triages a request, then a Tech Lead reads the relevant code and decomposes it into sub-tasks (escalating ambiguity to the user when needed), dispatches specialist devs in parallel (frontend/backend/database/devops/daemon/ux/ai), runs 4 QC reviewers (edgecase/security/perf/ux), and runs a real Ralph Loop that fixes findings until clean. All via Task-tool subagents in a single session — no external services, no DB, no dashboard.",
+  "description": "Multi-agent engineering pipeline that runs natively inside Claude Code. /dfx:run triages a request, then a Tech Lead reads the relevant code and decomposes it into sub-tasks (escalating ambiguity to the user when needed), dispatches specialist devs in parallel (frontend/backend/database/devops/daemon/ux/ai), runs 4 QC reviewers (edgecase/security/perf/ux), and runs a real Ralph Loop that fixes findings until clean. All via Task-tool subagents in a single session — no external services, no DB, no dashboard.",
   "author": {
     "name": "kiju7",
     "url": "https://github.com/kiju7"

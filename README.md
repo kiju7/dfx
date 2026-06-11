@@ -1,7 +1,7 @@
 # dfx
 
 > Claude Code 안에서 **다중 전문 에이전트가 협업하는 엔지니어링 파이프라인**.
-> `/dfx "X 해줘"` 한 번이면 — 분류 · 계획 · 구현 · 검증 · 리뷰가 자동으로 흘러갑니다.
+> `/dfx:run "X 해줘"` 한 번이면 — 분류 · 계획 · 구현 · 검증 · 리뷰가 자동으로 흘러갑니다.
 
 100% 네이티브 — Claude Code 의 `Task` subagent 만 사용. 외부 서버·DB·대시보드 없음.
 
@@ -35,8 +35,10 @@
 ## 사용
 
 ```
-/dfx "<your engineering request>"
+/dfx:run "<your engineering request>"
 ```
+
+> 플러그인 커맨드는 `/<플러그인>:<커맨드>` 로 네임스페이싱됩니다 → `dfx` 플러그인의 `run` 커맨드 = `/dfx:run`.
 
 예시:
 
@@ -49,7 +51,7 @@
 
 `🎯 Triage → ... → 🏁 done` 식 한 줄씩 떨어지며, 마지막에 **사용자 보고서** (비전문가용 markdown) 가 함께 출력됩니다.
 
-> ⚠️ 같은 worktree 에서 `/dfx` 두 번 동시 실행 금지 — git index race · build artifact 충돌. 두 작업을 동시에 돌리려면 `git worktree add` 로 격리하세요.
+> ⚠️ 같은 worktree 에서 `/dfx:run` 두 번 동시 실행 금지 — git index race · build artifact 충돌. 두 작업을 동시에 돌리려면 `git worktree add` 로 격리하세요.
 
 ---
 
@@ -116,7 +118,7 @@
 <details>
 <summary><b>📁 Audit log 구조</b></summary>
 
-매 /dfx 호출은 `_workspace/<run-id>/` 에 단계별 기록 남김:
+매 /dfx:run 호출은 `_workspace/<run-id>/` 에 단계별 기록 남김:
 
 ```
 _workspace/20260512-153022-a3f4/
@@ -145,14 +147,14 @@ _workspace/20260512-153022-a3f4/
 
 | 작업 규모 | 모델 분포 | 1 회 비용 추정 |
 |---|---|---|
-| 단순 fix (한 파일) | Triage(Haiku) + dev(Opus) + QC×4(Sonnet) + Review(Opus) | $0.50–2.00 |
-| 일반 기능 / 버그 | + Tech Lead(Opus, 코드 read) + Ralph 1~2 iter | $2–10 |
+| 단순 fix (한 파일) | Triage(Haiku) + dev(Opus) + QC×4(Sonnet) + Review(Fable) | $0.50–2.00 |
+| 일반 기능 / 버그 | + Tech Lead(Fable, 코드 read) + Ralph 1~2 iter | $2–10 |
 | 다중 도메인 신규 기능 | dev 여러 개 병렬 + QC×4 + Ralph 2~5 iter + Review | $8–35 |
 | 모호 bug (Investigation 활성) | + 재현 라운드 1~2 | 위 + $1–5 |
 
-기본 티어: triage = haiku · QC×4 = sonnet · Tech Lead + Dev = opus.
+기본 티어: triage = haiku · QC×4 = sonnet · **Tech Lead = fable** · Dev = opus. 단, Tech Lead 가 sub-task 마다 난이도 tier(`standard|deep`) 를 판정해 `deep` 인 것만 dev 를 fable 로 올림 (그 외 opus).
 
-비용 줄이려면: dev 의 `model: opus` → `sonnet` 다운그레이드, 또는 QC 4 중 일부 제외.
+비용 줄이려면: dev 의 `model: opus` → `sonnet` 다운그레이드, QC 4 중 일부 제외, 또는 Tech Lead 가 `deep` tier 를 더 보수적으로 쓰도록 (`agents/lead.md` tier 기준 조정).
 
 </details>
 
@@ -176,7 +178,7 @@ tools: [Read, Grep, Glob, Bash]
 
 ### 모델 변경
 
-각 `agents/<name>.md` 의 `model:` 필드. 옵션: `haiku | sonnet | opus`.
+각 `agents/<name>.md` 의 `model:` 필드. 옵션: `haiku | sonnet | opus | fable`. (현재 Tech Lead = `fable`, Dev = `opus` 기본 — 단 Tech Lead 가 sub-task 마다 tier `standard|deep` 로 dispatch 시 opus/fable 을 per-call 선택.)
 
 ### 디렉토리 구조
 
@@ -185,7 +187,7 @@ dfx/
 ├── .claude-plugin/
 │   ├── plugin.json
 │   └── marketplace.json
-├── commands/dfx.md         # /dfx 슬래시 커맨드
+├── commands/run.md         # /dfx:run 슬래시 커맨드
 ├── skills/dfx/SKILL.md     # 파이프라인 오케스트레이션
 └── agents/                   # 13 subagents
     ├── triage.md / lead.md
@@ -198,7 +200,7 @@ dfx/
 <details>
 <summary><b>⚙️ 동작 원리</b></summary>
 
-1. `/dfx` = `commands/dfx.md` → `dfx` skill 호출
+1. `/dfx:run` = `commands/run.md` → `dfx` skill 호출
 2. Claude Code 가 `skills/dfx/SKILL.md` 를 시스템 프롬프트에 합쳐 본 어시스턴트가 오케스트레이터 역할
 3. 본 어시스턴트가 `Task(subagent_type: "...")` 호출로 13 개 subagent (`agents/*.md`) 를 격리 컨텍스트에서 실행
 4. 같은 메시지에 여러 Task 호출 = 병렬 / 다음 메시지 = 순차
@@ -213,11 +215,13 @@ Claude Code 의 [Task subagent 기능](https://docs.claude.com/en/docs/claude-co
 ```bash
 git clone https://github.com/kiju7/dfx.git /tmp/dfx
 mkdir -p ~/.claude/{commands,agents,skills}
-cp    /tmp/dfx/commands/dfx.md ~/.claude/commands/
+cp    /tmp/dfx/commands/run.md ~/.claude/commands/
 cp -r /tmp/dfx/agents/*          ~/.claude/agents/
 cp -r /tmp/dfx/skills/dfx      ~/.claude/skills/
 rm -rf /tmp/dfx
 ```
+
+> 개인 설치(`~/.claude/commands/`)는 플러그인이 아니라 네임스페이스가 안 붙으므로 `/run` 으로 호출됩니다. `/dfx` 로 쓰고 싶으면 복사 시 파일명을 바꾸세요: `cp /tmp/dfx/commands/run.md ~/.claude/commands/dfx.md`.
 
 </details>
 

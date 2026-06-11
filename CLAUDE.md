@@ -1,6 +1,6 @@
 # dfx
 
-Multi-agent engineering pipeline that runs natively inside Claude Code via `Task` subagents. The user invokes `/dfx "<request>"`; an orchestrator skill triages, decomposes via Tech Lead (which reads code first), dispatches parallel specialists, runs QC reviewers, and auto-fixes findings — all in one Claude Code session with no external services.
+Multi-agent engineering pipeline that runs natively inside Claude Code via `Task` subagents. The user invokes `/dfx:run "<request>"` (plugin commands are namespaced `/<plugin>:<command>`); an orchestrator skill triages, decomposes via Tech Lead (which reads code first), dispatches parallel specialists, runs QC reviewers, and auto-fixes findings — all in one Claude Code session with no external services.
 
 ## Layout
 
@@ -8,16 +8,16 @@ Multi-agent engineering pipeline that runs natively inside Claude Code via `Task
 .claude-plugin/
   plugin.json                  # Plugin manifest
   marketplace.json             # Marketplace entry — enables /plugin install
-commands/dfx.md              # /dfx entry point
+commands/run.md              # /dfx:run entry point
 skills/dfx/SKILL.md          # Pipeline orchestration logic (read this for the flow)
 agents/                        # 13 native subagents (triage, lead, 7 devs, 4 QC)
 ```
 
 Claude Code 플러그인은 **플러그인 루트** 의 `commands/`, `agents/`, `skills/` 를 자동 스캔. `.claude/` 안에 넣으면 안 잡힘.
 
-## How a /dfx invocation flows
+## How a /dfx:run invocation flows
 
-1. User: `/dfx "<request>"` → invokes `commands/dfx.md`
+1. User: `/dfx:run "<request>"` → invokes `commands/run.md`
 2. That command instructs the assistant to invoke the `dfx` skill
 3. The skill's body becomes the orchestration instructions for THIS conversation
 4. The assistant spawns subagents via `Task(subagent_type: "<name>", prompt: "...")` calls

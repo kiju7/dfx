@@ -3,7 +3,7 @@ description: Run the dfx multi-agent engineering pipeline natively inside Claude
 argument-hint: "[your engineering request — bug / feature / fix / qc]"
 ---
 
-The user invoked `/dfx` to run the dfx native multi-agent pipeline. Their request follows.
+The user invoked `/dfx:run` to run the dfx native multi-agent pipeline. Their request follows.
 
 > $ARGUMENTS
 

@@ -8,7 +8,7 @@
   "plugins": [
     {
       "name": "dfx",
-      "description": "Multi-agent engineering pipeline that runs natively inside Claude Code (/dfx → triage → Tech Lead (reads code, decomposes) → parallel devs → 4 QC reviewers → Ralph Loop auto-fix).",
+      "description": "Multi-agent engineering pipeline that runs natively inside Claude Code (/dfx:run → triage → Tech Lead (reads code, decomposes) → parallel devs → 4 QC reviewers → Ralph Loop auto-fix).",
       "source": "./"
     }
   ]
