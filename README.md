@@ -1,7 +1,7 @@
 # dfx
 
 > Claude Code 안에서 **다중 전문 에이전트가 협업하는 엔지니어링 파이프라인**.
-> `/dfx:run "X 해줘"` 한 번이면 — 분류 · 계획 · 구현 · 검증 · 리뷰가 자동으로 흘러갑니다.
+> `/dfx:dfx "X 해줘"` 한 번이면 — 분류 · 계획 · 구현 · 검증 · 리뷰가 자동으로 흘러갑니다.
 
 100% 네이티브 — Claude Code 의 `Task` subagent 만 사용. 외부 서버·DB·대시보드 없음.
 
@@ -35,10 +35,10 @@
 ## 사용
 
 ```
-/dfx:run "<your engineering request>"
+/dfx:dfx "<your engineering request>"
 ```
 
-> 플러그인 커맨드는 `/<플러그인>:<커맨드>` 로 네임스페이싱됩니다 → `dfx` 플러그인의 `run` 커맨드 = `/dfx:run`.
+> 플러그인 스킬은 `/<플러그인>:<스킬>` 로 네임스페이싱됩니다 → `dfx` 플러그인의 `dfx` 스킬 = `/dfx:dfx`.
 
 예시:
 
@@ -51,7 +51,7 @@
 
 `🎯 Triage → ... → 🏁 done` 식 한 줄씩 떨어지며, 마지막에 **사용자 보고서** (비전문가용 markdown) 가 함께 출력됩니다.
 
-> ⚠️ 같은 worktree 에서 `/dfx:run` 두 번 동시 실행 금지 — git index race · build artifact 충돌. 두 작업을 동시에 돌리려면 `git worktree add` 로 격리하세요.
+> ⚠️ 같은 worktree 에서 `/dfx:dfx` 두 번 동시 실행 금지 — git index race · build artifact 충돌. 두 작업을 동시에 돌리려면 `git worktree add` 로 격리하세요.
 
 ---
 
@@ -118,7 +118,7 @@
 <details>
 <summary><b>📁 Audit log 구조</b></summary>
 
-매 /dfx:run 호출은 `_workspace/<run-id>/` 에 단계별 기록 남김:
+매 /dfx:dfx 호출은 `_workspace/<run-id>/` 에 단계별 기록 남김:
 
 ```
 _workspace/20260512-153022-a3f4/
@@ -174,7 +174,7 @@ tools: [Read, Grep, Glob, Bash]
 당신의 역할은...
 ```
 
-`skills/run/SKILL.md` 의 라우팅에 추가하면 끝.
+`skills/dfx/SKILL.md` 의 라우팅에 추가하면 끝.
 
 ### 모델 변경
 
@@ -187,7 +187,7 @@ dfx/
 ├── .claude-plugin/
 │   ├── plugin.json
 │   └── marketplace.json
-├── skills/run/SKILL.md     # /dfx:run 진입점 + 파이프라인 오케스트레이션
+├── skills/dfx/SKILL.md     # /dfx:dfx 진입점 + 파이프라인 오케스트레이션
 └── agents/                   # 13 subagents
     ├── triage.md / lead.md
     ├── frontend / backend / database / devops / daemon / ux / ai
@@ -199,8 +199,8 @@ dfx/
 <details>
 <summary><b>⚙️ 동작 원리</b></summary>
 
-1. `/dfx:run` = `run` 스킬(`skills/run/SKILL.md`) 직접 호출 (요청은 `$ARGUMENTS` 로 전달, 별도 command 파일 없음)
-2. Claude Code 가 `skills/run/SKILL.md` 를 시스템 프롬프트에 합쳐 본 어시스턴트가 오케스트레이터 역할
+1. `/dfx:dfx` = `dfx` 스킬(`skills/dfx/SKILL.md`) 직접 호출 (요청은 `$ARGUMENTS` 로 전달, 별도 command 파일 없음)
+2. Claude Code 가 `skills/dfx/SKILL.md` 를 시스템 프롬프트에 합쳐 본 어시스턴트가 오케스트레이터 역할
 3. 본 어시스턴트가 `Task(subagent_type: "...")` 호출로 13 개 subagent (`agents/*.md`) 를 격리 컨텍스트에서 실행
 4. 같은 메시지에 여러 Task 호출 = 병렬 / 다음 메시지 = 순차
 
@@ -215,11 +215,11 @@ Claude Code 의 [Task subagent 기능](https://docs.claude.com/en/docs/claude-co
 git clone https://github.com/kiju7/dfx.git /tmp/dfx
 mkdir -p ~/.claude/{agents,skills}
 cp -r /tmp/dfx/agents/*          ~/.claude/agents/
-cp -r /tmp/dfx/skills/run      ~/.claude/skills/
+cp -r /tmp/dfx/skills/dfx      ~/.claude/skills/
 rm -rf /tmp/dfx
 ```
 
-> 개인 설치(`~/.claude/skills/`)는 플러그인이 아니라 네임스페이스가 안 붙으므로 `/run` 으로 호출됩니다 (플러그인 설치 시에는 `/dfx:run`).
+> 개인 설치(`~/.claude/skills/`)는 플러그인이 아니라 네임스페이스가 안 붙으므로 `/dfx` 로 호출됩니다 (플러그인 설치 시에는 `/dfx:dfx`).
 
 </details>
 
