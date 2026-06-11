@@ -230,9 +230,9 @@ orchestrator:
 검증 선택 후 한 줄:
 > 🧪 **Verification** — `<선택>` (`<approach>`)
 
-`route == "direct"` 면 sub-task 1개 합성:
+`route == "direct"` 면 sub-task 1개 합성 (direct 는 정의상 단순 → `tier: "standard"`):
 ```json
-[{ "title": "<짧게>", "targets": triage.targets, "brief": <원본 요청>, "depends_on": [] }]
+[{ "title": "<짧게>", "targets": triage.targets, "brief": <원본 요청>, "depends_on": [], "tier": "standard" }]
 ```
 
 출력:
@@ -252,7 +252,7 @@ sub-task 마다 한 줄: `  · [<role>] <title>`.
 
   ## Sub-tasks
 
-  ### 1. <title>  `[<targets>]`  (depends_on: `[]` or `[0,1]`)
+  ### 1. <title>  `[<targets>]`  `tier:<standard|deep>`  (depends_on: `[]` or `[0,1]`)
 
   <brief>
 
@@ -296,6 +296,18 @@ sub-task 를 의존성 layer 로 묶음:
 - ... 이런 식
 
 **같은 layer 안에서는 한 어시스턴트 메시지에 `Task` 호출 N개를 동시에 띄워 병렬 실행**. 각 Task 의 `subagent_type` = sub-task 의 첫 번째 target role (`frontend | backend | database | devops | daemon | ai | ux`). brief 를 프롬프트로 넘기고, 원본 사용자 요청도 컨텍스트로 함께 전달. **sub-task 에 `spike: true` 가 있으면 그 사실을 dev 프롬프트에 명시** (아래 "설계 먼저 + spike" 주입 지시가 발동하도록).
+
+**모델 tier 적용** (Tech Lead 가 sub-task 마다 판정한 난이도 `tier` → 모델 매핑): 각 Task dispatch 시 sub-task 의 `tier` 를 모델로 변환해 `model` 파라미터로 넘긴다.
+
+- `tier == "deep"` → `model: "fable"`
+- 그 외 (`"standard"`, 또는 누락·미상 값) → `model: "opus"`
+
+예: deep sub-task → `Task(subagent_type: "backend", model: "fable", prompt: ...)`. dev 의 frontmatter 기본 모델(opus)을 이 per-call `model` 이 덮어쓴다.
+
+> **런타임 호환**: 이 환경에서 per-call `model` override + `fable` 값 모두 동작 확인됨(2026-06-11 스모크 테스트). 다른 Claude Code 빌드로 이식 시에만 재확인 필요 — 만약 `model` 때문에 dispatch 가 실패하면 **`model` 인자를 빼고 (dev frontmatter 기본 = opus) 진행**하고, 그 sub-task 가 deep 이었다면 부모 chat 에 한 줄로 알린다:
+> > ⚠️ `model` override 미지원 — `<role>` sub-task 를 opus 로 진행 (요청 tier: deep)
+>
+> tier 시스템 자체(분해 품질·audit)는 override 미지원이어도 무해하다. lead 의 fable 화는 frontmatter 라 이 경로와 무관.
 
 **Same-role 직렬화** (강제 룰, 예외 없음)
 

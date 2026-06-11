@@ -28,8 +28,8 @@ Claude Code 플러그인은 **플러그인 루트** 의 `commands/`, `agents/`, 
 ## Subagent roles
 
 - `triage` (haiku) — routing decision, JSON output, read-only
-- `lead` (opus) — Tech Lead. Reads code first, then decomposes into sub-tasks. May escalate ambiguity to user. JSON output, read-only.
-- Devs (opus, Read/Edit/Write/Bash): `frontend`, `backend`, `database`, `devops`, `daemon`, `ux`, `ai` — each with scoped allowed paths in the prompt body
+- `lead` (fable) — Tech Lead. Reads code first, then decomposes into sub-tasks. May escalate ambiguity to user. JSON output, read-only. Highest reasoning load (decomposition / per-subtask model tier / Acceptance Review), so runs on Claude Fable 5.
+- Devs (Read/Edit/Write/Bash): `frontend`, `backend`, `database`, `devops`, `daemon`, `ux`, `ai` — each with scoped allowed paths in the prompt body. Frontmatter default model is `opus`; the **Tech Lead assigns a per-subtask difficulty `tier` (`standard` | `deep`)** which the orchestrator maps to a `Task` `model` override at dispatch (`standard`→opus, `deep`→fable; falls back to opus if the runtime rejects per-call override / `fable`).
 - QC (sonnet, read-only, JSON): `qc-edgecase`, `qc-security`, `qc-perf`, `qc-ux`
 
 ## Editing rules
