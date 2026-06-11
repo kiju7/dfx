@@ -174,7 +174,7 @@ tools: [Read, Grep, Glob, Bash]
 당신의 역할은...
 ```
 
-`skills/dfx/SKILL.md` 의 라우팅에 추가하면 끝.
+`skills/run/SKILL.md` 의 라우팅에 추가하면 끝.
 
 ### 모델 변경
 
@@ -187,8 +187,7 @@ dfx/
 ├── .claude-plugin/
 │   ├── plugin.json
 │   └── marketplace.json
-├── commands/run.md         # /dfx:run 슬래시 커맨드
-├── skills/dfx/SKILL.md     # 파이프라인 오케스트레이션
+├── skills/run/SKILL.md     # /dfx:run 진입점 + 파이프라인 오케스트레이션
 └── agents/                   # 13 subagents
     ├── triage.md / lead.md
     ├── frontend / backend / database / devops / daemon / ux / ai
@@ -200,8 +199,8 @@ dfx/
 <details>
 <summary><b>⚙️ 동작 원리</b></summary>
 
-1. `/dfx:run` = `commands/run.md` → `dfx` skill 호출
-2. Claude Code 가 `skills/dfx/SKILL.md` 를 시스템 프롬프트에 합쳐 본 어시스턴트가 오케스트레이터 역할
+1. `/dfx:run` = `run` 스킬(`skills/run/SKILL.md`) 직접 호출 (요청은 `$ARGUMENTS` 로 전달, 별도 command 파일 없음)
+2. Claude Code 가 `skills/run/SKILL.md` 를 시스템 프롬프트에 합쳐 본 어시스턴트가 오케스트레이터 역할
 3. 본 어시스턴트가 `Task(subagent_type: "...")` 호출로 13 개 subagent (`agents/*.md`) 를 격리 컨텍스트에서 실행
 4. 같은 메시지에 여러 Task 호출 = 병렬 / 다음 메시지 = 순차
 
@@ -214,14 +213,13 @@ Claude Code 의 [Task subagent 기능](https://docs.claude.com/en/docs/claude-co
 
 ```bash
 git clone https://github.com/kiju7/dfx.git /tmp/dfx
-mkdir -p ~/.claude/{commands,agents,skills}
-cp    /tmp/dfx/commands/run.md ~/.claude/commands/
+mkdir -p ~/.claude/{agents,skills}
 cp -r /tmp/dfx/agents/*          ~/.claude/agents/
-cp -r /tmp/dfx/skills/dfx      ~/.claude/skills/
+cp -r /tmp/dfx/skills/run      ~/.claude/skills/
 rm -rf /tmp/dfx
 ```
 
-> 개인 설치(`~/.claude/commands/`)는 플러그인이 아니라 네임스페이스가 안 붙으므로 `/run` 으로 호출됩니다. `/dfx` 로 쓰고 싶으면 복사 시 파일명을 바꾸세요: `cp /tmp/dfx/commands/run.md ~/.claude/commands/dfx.md`.
+> 개인 설치(`~/.claude/skills/`)는 플러그인이 아니라 네임스페이스가 안 붙으므로 `/run` 으로 호출됩니다 (플러그인 설치 시에는 `/dfx:run`).
 
 </details>
 

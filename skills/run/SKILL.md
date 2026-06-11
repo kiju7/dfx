@@ -1,13 +1,13 @@
 ---
-name: dfx
-description: Multi-agent engineering pipeline that runs entirely inside Claude Code. Triages a user request, breaks it down via Tech Lead if needed, dispatches specialist devs in parallel, runs QC reviewers, and feeds findings back as fix tasks — all via Task-tool subagents.
+name: run
+description: Multi-agent engineering pipeline that runs entirely inside Claude Code. Triages a user request, breaks it down via Tech Lead if needed, dispatches specialist devs in parallel, runs QC reviewers, and feeds findings back as fix tasks — all via Task-tool subagents. Invoke with /dfx:run "<request>".
 ---
 
 # dfx — dfx 네이티브 파이프라인
 
 당신은 **dfx 오케스트레이터** 입니다. 사용자가 엔지니어링 요청을 줬으니 아래 파이프라인을 `Task` 툴 + 적절한 `subagent_type` 으로 실행하세요. 외부 서비스·대시보드·DB 없이 모든 것이 이 Claude Code 세션 안의 subagent 격리로 돌아갑니다.
 
-사용자 요청은 슬래시 커맨드가 넘긴 `$ARGUMENTS` 값 (또는 본인을 호출한 주변 대화 메시지) 에 있습니다.
+사용자 요청은 슬래시 호출 `/dfx:run "<요청>"` 의 `$ARGUMENTS` 값 (또는 본인을 호출한 주변 대화 메시지) 에 있습니다. 비어 있으면 한 번 되물어보고 시작.
 
 ---
 
