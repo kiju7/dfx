@@ -1,5 +1,12 @@
 # dfx
 
+**Codex 버전은 이 `codex` 브랜치의 [설치·사용 안내](codex/README.md)를 참고하세요.**
+`python3 scripts/install_codex_skill.py`로 설치하고 `$dfx`로 호출합니다.
+작업별 GPT 모델·effort 선택, 선택적 병렬 위임과 근거 기반 검증을 지원합니다.
+기존 Claude 버전의 이력은 [`claude` 브랜치](https://github.com/kiju7/dfx/tree/claude)에 보존합니다.
+
+아래는 함께 보존된 Claude 버전의 사용 안내입니다.
+
 > Claude Code 안에서 **다중 전문 에이전트가 협업하는 엔지니어링 파이프라인**.
 > `/dfx:dfx "X 해줘"` 한 번이면 — 분류 · 계획 · 구현 · 검증 · 리뷰가 자동으로 흘러갑니다.
 
