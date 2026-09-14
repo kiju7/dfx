@@ -26,6 +26,12 @@ Do not split solely by frontend/backend/database titles. Keep tightly connected
 changes together; assign shared contracts and files to one writer at a time.
 Read only the project instructions and code needed for the current decision.
 
+**Design gate (conditional):** only when the request has two or more readings
+and the choice materially changes the deliverable, read the code first and then
+ask the user with two or three options and a recommendation. If the user cannot
+answer (unattended run), proceed on the recommendation and record the assumption
+in the report. Make routine judgment calls yourself.
+
 ## Delegate deliberately
 
 Before the first delegation, read [routing.md](references/routing.md) for model
@@ -38,7 +44,8 @@ cheap-first failure cascade. Continue useful independent work while workers run.
 Give workers goals, boundaries and acceptance criteria rather than prescribing
 every implementation step. Pass the relevant context, not the full conversation
 by default. Workers report recommended handoffs to you; they do not recursively
-grow a team. Reuse an agent when its prior context is still useful.
+grow a team. Reuse an agent when its prior context is still useful. Attach only
+the relevant sections of [domains.md](references/domains.md) to a brief.
 
 ## Verify and converge
 
@@ -46,7 +53,9 @@ Read [verification.md](references/verification.md) when reviewing, handling fail
 checks, or resuming a multi-step run. Judge completion by requirements and observed
 evidence, not an agent's confidence score or an empty findings list. Run checks
 proportional to the change and recheck affected behavior after fixes. Do not repeat
-unchanged verification merely because another stage ended.
+unchanged verification merely because another stage ended. Reviewers (security,
+performance, UX lenses) are conditional, not four mandatory votes; a cross-vendor
+reviewer is optional and only through means the user has allowed (delegation.md).
 
 For multi-step or delegated work, keep a compact run record using the format in
 that reference. Continue authorized local edit/check/fix work without repeated

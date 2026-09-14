@@ -7,7 +7,7 @@ node_modules/
 .env.local
 .env.*.local
 
-# /forge audit log (per-run artifacts: triage / plan / impl / qc / ralph / summary)
+# dfx run records (v1: _workspace/<run-id>/, v2: _workspace/dfx/<run-id>/)
 _workspace/
 
 # Python bytecode

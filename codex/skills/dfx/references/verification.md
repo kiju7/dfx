@@ -19,8 +19,11 @@ Use a fresh reviewer for changes where independent judgment has value. Give it
 the user intent, diff/base reference, relevant files and test commands/results;
 do not prime it with the implementer's conclusion. It should examine the actual
 diff and related code. Security, performance and UX reviews are conditional, not
-four mandatory votes. Findings need impact and code/reproduction evidence; a
-speculative style preference is not an automatic fix requirement.
+four mandatory votes; give a reviewer only the lens sections it needs from
+[domains.md](domains.md). Findings need impact and code/reproduction evidence; a
+speculative style preference is not an automatic fix requirement. Reviewers must
+find new (untracked) files with `git status` because `git diff HEAD` omits them,
+and must downgrade findings they could not reproduce to `suspected`.
 
 ## Bounded recovery
 

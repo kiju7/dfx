@@ -1,39 +1,37 @@
 # dfx
 
-Multi-agent engineering pipeline that runs natively inside Claude Code via `Task` subagents. The user invokes `/dfx:dfx "<request>"` (plugin skills are namespaced `/<plugin>:<skill>`); an orchestrator skill triages, decomposes via Tech Lead (which reads code first), dispatches parallel specialists, runs QC reviewers, and auto-fixes findings — all in one Claude Code session with no external services.
+Adaptive multi-agent engineering delivery for Claude Code (v2). The user invokes `/dfx:dfx "<request>"` (plugin skills are namespaced `/<plugin>:<skill>`). The skill makes the current assistant the coordinator: it chooses the smallest useful team for the task, delegates bounded briefs to `Agent` subagents with per-task model selection, runs conditional independent review, and hands off with evidence. No fixed pipeline, no mandatory agent count, no external services.
 
 ## Layout
 
 ```
-.claude-plugin/
-  plugin.json                  # Plugin manifest
-  marketplace.json             # Marketplace entry — enables /plugin install
-skills/dfx/SKILL.md          # /dfx:dfx entry point + pipeline orchestration (read this for the flow)
-agents/                        # 13 native subagents (triage, lead, 7 devs, 4 QC)
+.claude-plugin/plugin.json | marketplace.json   # plugin manifest / marketplace entry
+skills/dfx/SKILL.md                             # short entrypoint: work shapes, delegation, verification, handoff
+skills/dfx/references/routing.md                # model selection (haiku/sonnet/opus/fable), escalation rules
+skills/dfx/references/delegation.md             # Agent/Workflow adapter, decomposition, brief contract, roles as modes
+skills/dfx/references/verification.md           # completion criteria, bounded recovery, Workflow loop, run.json/report.md
+skills/dfx/references/domains.md                # domain checklists pasted into briefs only when relevant
+agents/worker.md                                # build/explore owner (full tools, opus default, per-call model override)
+agents/reviewer.md                              # read-only independent reviewer, JSON findings with evidence
+codex/                                          # Codex entrypoint (see AGENTS.md); not scanned by the Claude plugin
+scripts/                                        # Codex installer + tests; qc_stuck_trends.py reads v1 audit logs only
 ```
 
-Claude Code 플러그인은 **플러그인 루트** 의 `agents/`, `skills/` 를 자동 스캔. `.claude/` 안에 넣으면 안 잡힘. 진입점은 `dfx` 스킬 (`/dfx:dfx`) — 별도 command 파일 없음 (스킬이 슬래시로 직접 호출되고 `$ARGUMENTS` 를 받음). 스킬명을 `run` 으로 바꿔봤으나 Claude Code 내장 `run` 스킬과 메뉴에서 겹쳐 `dfx` 로 되돌림.
+Claude Code scans `agents/` and `skills/` at the plugin root. Files under `.claude/` are not picked up. The entrypoint is the `dfx` skill itself (`$ARGUMENTS`); there is no separate command file. A `run` skill name collides with the built-in `run` skill, so keep `dfx`.
 
-## How a /dfx:dfx invocation flows
+## How a run flows
 
-1. User: `/dfx:dfx "<request>"` → invokes the `dfx` skill (`skills/dfx/SKILL.md`) directly; the request arrives as `$ARGUMENTS`
-2. The skill's body becomes the orchestration instructions for THIS conversation
-3. The assistant spawns subagents via `Task(subagent_type: "<name>", prompt: "...")` calls
-4. **Parallel layers** = multiple Task calls in one assistant message; **sequential** = separate messages
-5. Subagents return structured output (JSON for triage/lead/qc, `TASK_DONE` / `ESCALATE:` / `SUGGEST_REVISION:` for devs)
-6. Skill emits one consolidated summary at the end
-
-## Subagent roles
-
-- `triage` (haiku) — routing decision, JSON output, read-only
-- `lead` (fable) — Tech Lead. Reads code first, then decomposes into sub-tasks. May escalate ambiguity to user. JSON output, read-only. Highest reasoning load (decomposition / per-subtask model tier / Acceptance Review), so runs on Claude Fable 5.
-- Devs (Read/Edit/Write/Bash): `frontend`, `backend`, `database`, `devops`, `daemon`, `ux`, `ai` — each with scoped allowed paths in the prompt body. Frontmatter default model is `opus`; the **Tech Lead assigns a per-subtask difficulty `tier` (`standard` | `deep`)** which the orchestrator maps to a `Task` `model` override at dispatch (`standard`→opus, `deep`→fable; falls back to opus if the runtime rejects per-call override / `fable`).
-- QC (sonnet, read-only, JSON): `qc-edgecase`, `qc-security`, `qc-perf`, `qc-ux`
+1. `/dfx:dfx "<request>"` loads `skills/dfx/SKILL.md` into this conversation.
+2. The coordinator picks a work shape: small change (do it directly), coupled change (one owner + optional reviewer), independent changes (parallel `dfx:worker` briefs, coordinator integrates), uncertain cause/design (targeted evidence first; conditional `AskUserQuestion` design gate).
+3. Before the first delegation it reads `routing.md` and `delegation.md`; before review/repair/resume it reads `verification.md`. Domain notes come from `domains.md` per brief.
+4. Parallel = several `Agent` calls in one assistant message. Concurrent writes to a shared worktree are forbidden: use `isolation: "worktree"` or disjoint ownership with serialized builds.
+5. Multi-step runs keep `_workspace/dfx/<run-id>/run.json` and end with `report.md`. Trivial edits keep no record.
+6. Convergence loops with 3+ review lenses or 2+ expected rounds may use the `Workflow` tool (`/dfx` is the opt-in; load `workflow-authoring` first).
 
 ## Editing rules
 
-- New role or QC reviewer → add an `.md` file under `agents/` with frontmatter `name | description | model | tools`. Reference it from `skills/dfx/SKILL.md` routing.
-- Pipeline shape changes → edit `skills/dfx/SKILL.md` only.
-- Per-run audit log lives at `_workspace/<run-id>/` (gitignored). Each phase appends a file: `00-request.md`, `01-triage.json`, `02-plan.json`, `03-impl/`, `04-qc/`, `05-ralph/`, `06-review/`, `99-summary.md`.
-- Tech Lead has 6 modes (see `agents/lead.md`): initial plan / user-escalation / dev-SUGGEST_REVISION handling / **Acceptance Review** (Ralph 수렴 패턴, APPROVE 까지 반복) / **Bug Triage & Reproduction** (kind=bug + 재현 불명 시 dev/QC 한테 repro task 발주 후 plan) / **Verification Choice** (검증 방식 선택지가 의미있을 때 사용자에게 informed question).
-- Dev / QC subagents have a special `Repro 모드` activated when their sub-task has `kind: "repro"` — they investigate (not change code) and return `REPRO_REPORT` instead of `WORK_SUMMARY` / findings.
+- Behavior changes go to `skills/dfx/SKILL.md` (keep it a short router) or the relevant reference; do not grow SKILL.md with recipes.
+- Agent frontmatter `name | description | model | tools` is the schema. `worker` must not have `Agent` in its tools (no recursive delegation). `reviewer` stays read-only.
+- Keep model names abstract (`haiku/sonnet/opus/fable`), never hardcode dated model IDs.
+- Keep the Codex entrypoint (`codex/skills/dfx`) aligned in structure; do not translate Claude tool names literally.
+- Behavioral evaluations run in disposable directories, never in a user's application repo. Report limitations; smoke tests are not benchmarks.
