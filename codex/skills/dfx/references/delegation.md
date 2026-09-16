@@ -28,12 +28,17 @@ Other runtimes have different fork semantics: inspect their schema first.
 Applicable user, developer and repository constraints must survive a fresh fork.
 
 Respect available concurrency, including the parent and other active agents.
-Budget concurrency by actual process load (builds and test suites running at the
-same time), not by agent count; two workers each running a full build can stall
-the machine. Queue work when slots are full; capacity pressure is not a task
-failure. Close
-finished agents when that host supports it and their context is no longer useful.
-Do not make optional reviews compete with implementation on the critical path.
+Account for build/test load as well as agent count. Reuse an idle agent when its
+context helps; use a fresh agent for independent review or unrelated work.
+
+On a spawn/resume limit error, inspect agent states before retrying. A thread
+limit does not establish that concurrent slots are full; report an unknown cause
+as unknown. Wait for relevant active work, or close unneeded completed agents
+only if the host exposes that capability; interruption is not deletion. Retry
+once after a relevant state change or through an available alternative. If still
+rejected, continue locally where possible and disclose missing independent review.
+Distinguish attempted delegation/settings from work that actually ran; do not
+loop between spawn and resume without new evidence.
 
 ## Decomposition
 
