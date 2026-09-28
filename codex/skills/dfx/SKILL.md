@@ -26,6 +26,14 @@ Do not split solely by frontend/backend/database titles. Keep tightly connected
 changes together; assign shared contracts and files to one writer at a time.
 Read only the project instructions and code needed for the current decision.
 
+**Change principles (every owner):**
+- Surface ambiguity and assumptions instead of guessing (see the gate below).
+- Write the minimum code that solves the request. No unrequested abstractions,
+  options or "future-proofing".
+- Touch only what the request requires. Do not tidy, refactor or reformat
+  neighboring code; report other problems instead of fixing them.
+- Define completion criteria before editing and judge the end by them.
+
 **Design gate (conditional):** only when the request has two or more readings
 and the choice materially changes the deliverable, read the code first and then
 ask the user with two or three options and a recommendation. If the user cannot
@@ -39,7 +47,9 @@ and effort selection and [delegation.md](references/delegation.md) for the host
 adapter and task contract. Use only capabilities actually exposed by the host.
 Select model and effort separately per task; respect explicit user choices.
 Start difficult, high-impact work with a capable model rather than forcing a
-cheap-first failure cascade. Continue useful independent work while workers run.
+cheap-first failure cascade. Continue useful independent work while workers run. When the coordinator is
+already a strong model, delegate only for parallelism, context protection or
+independent review (routing.md).
 
 Give workers goals, boundaries and acceptance criteria rather than prescribing
 every implementation step. Pass the relevant context, not the full conversation
@@ -53,8 +63,10 @@ Read [verification.md](references/verification.md) when reviewing, handling fail
 checks, or resuming a multi-step run. Judge completion by requirements and observed
 evidence, not an agent's confidence score or an empty findings list. Run checks
 proportional to the change and recheck affected behavior after fixes. Do not repeat
-unchanged verification merely because another stage ended. Reviewers (security,
-performance, UX lenses) are conditional, not four mandatory votes; a cross-vendor
+unchanged verification merely because another stage ended. Default independent review
+is **one pass over the full diff after all edits**, not one per task; review a
+slice early only when later work builds on its shared contract or it is hard to
+revert. Security, performance and UX lenses are added only for matching risk; a cross-vendor
 reviewer is optional and only through means the user has allowed (delegation.md).
 
 For multi-step or delegated work, keep a compact run record using the format in

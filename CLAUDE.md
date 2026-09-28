@@ -34,4 +34,5 @@ Claude Code scans `agents/` and `skills/` at the plugin root. Files under `.clau
 - Agent frontmatter `name | description | model | tools` is the schema. `worker` must not have `Agent` in its tools (no recursive delegation). `reviewer` stays read-only.
 - Keep model names abstract (`haiku/sonnet/opus/fable`), never hardcode dated model IDs.
 - Keep the Codex entrypoint (`codex/skills/dfx`) aligned in structure; do not translate Claude tool names literally.
+- Policy changes are judged by comparing representative tasks (small edit, feature, coupled change, unknown-cause bug, high-impact change) against a single-agent baseline on the same revision: requirement completion, regressions, retries, elapsed time, human fixes, observable tokens. API dollar estimates and subscription quota are not interchangeable.
 - Behavioral evaluations run in disposable directories, never in a user's application repo. Report limitations; smoke tests are not benchmarks.

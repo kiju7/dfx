@@ -17,6 +17,20 @@ a small plan can stay local, a mechanical implementation can use Luna, and a
 subtle implementation can start on Astra. The parent model is already selected
 by the host; do not claim to switch it by writing instructions or settings.
 
+## When the coordinator is already strong
+
+If the parent runs on Sol or Astra, handing a coupled task to a same-tier worker
+adds briefing cost and misunderstanding risk without adding capability. Delegate
+only when at least one applies:
+
+- **Parallelism:** two or more independent slices shorten wall time.
+- **Context protection:** bulk reading, long logs or repeated checks would fill
+  the coordinator's context.
+- **Independence:** a review must not be primed by the implementer's conclusion.
+
+Otherwise do the work locally and spend coordinator tokens on judgment and
+coupled edits.
+
 For each dispatch, briefly record model, effort and rationale. The objective is
 successful completion including rework, elapsed time and human review effort,
 not the cheapest individual call. Simple tool execution rarely needs its own
@@ -44,13 +58,3 @@ Full-history forks may prohibit model/effort overrides in some hosts. Use a fres
 context with a self-contained brief in that case. Record requested settings and
 runtime-confirmed settings separately; an accepted request is not independent
 proof of which backend served it.
-
-## Improve the policy
-
-Compare representative tasks from a common clean revision: small edits, normal
-features, coupled changes, unclear defects and high-impact changes. Compare a
-single-agent baseline with adaptive delegation. Track requirement completion,
-regressions, retries, wall time, human corrections and observed token usage when
-available. Preserve the task and evaluation environment. Do not optimize using
-model self-scores alone or claim savings from one smoke run. API dollar estimates
-and subscription quota consumption are not interchangeable.

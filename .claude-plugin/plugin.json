@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "dfx",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Adaptive multi-agent engineering delivery inside Claude Code. /dfx:dfx sizes the team to the task (direct edit, single owner, parallel workers, or evidence-first investigation), delegates bounded briefs to Agent subagents with per-task model selection, runs conditional independent reviews, and hands off with evidence. Two agents (worker, reviewer) plus reference docs; no external services.",
   "author": {
     "name": "kiju7",

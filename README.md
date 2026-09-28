@@ -39,11 +39,11 @@ cp -r /tmp/dfx/skills/dfx ~/.claude/skills/
 | 상황 | 동작 |
 |---|---|
 | 작은 수정 | 조정자가 직접 구현·확인. 별도 에이전트·기록 없음 |
-| 결합된 변경 | 담당자 1명이 탐색·구현·테스트. 필요하면 독립 리뷰어 1명 |
+| 결합된 변경 | 담당자 1명(조정자가 강한 모델이면 보통 조정자 자신)이 탐색·구현·테스트. 필요하면 끝에 독립 리뷰 1회 |
 | 독립적인 변경들 | 의존성·파일 소유권을 정한 뒤 `dfx:worker` 병렬 위임, 조정자가 통합 |
 | 원인·설계 불확실 | 표적 증거를 먼저 얻고 구현. 해석이 갈리면 선택지 2~3개로 질문 |
 
-모델은 작업 증거에 따라 `haiku / sonnet / opus / fable` 중 고릅니다. 역할별 고정이 아니며 사용자 지시가 우선합니다. 기준은 [routing.md](skills/dfx/references/routing.md). 리뷰(엣지 케이스·보안·성능·UX)는 조건부이고, 리뷰 렌즈가 3개 이상이거나 수렴 라운드가 여러 번 예상되면 Claude Code 의 `Workflow` 도구로 돌립니다. 에이전트 목록에 Codex 플러그인(`codex:codex-rescue`)이 있으면 영향 큰 변경에 교차 벤더 리뷰 1회를 추가합니다.
+모델은 작업 증거에 따라 `haiku / sonnet / opus / fable` 중 고릅니다. 역할별 고정이 아니며 사용자 지시가 우선합니다. 기준은 [routing.md](skills/dfx/references/routing.md). 독립 리뷰는 기본적으로 모든 편집 뒤 전체 diff 에 한 번이며, 모든 담당자는 "요청 범위만·최소 코드" 변경 원칙을 따릅니다. 보안·성능·UX 렌즈는 조건부이고, 리뷰 렌즈가 3개 이상이거나 수렴 라운드가 여러 번 예상되면 Claude Code 의 `Workflow` 도구로 돌립니다. 에이전트 목록에 Codex 플러그인(`codex:codex-rescue`)이 있으면 영향 큰 변경에 교차 벤더 리뷰 1회를 추가합니다.
 
 같은 작업 트리에 동시 쓰기는 하지 않습니다. 병렬 쓰기는 worktree 격리 또는 소유 파일 분리 + 빌드 직렬화로만 합니다. 다단계 작업은 대상 프로젝트의 `_workspace/dfx/<run-id>/` 에 `run.json` 과 `report.md` 를 남깁니다(커밋 제외).
 
@@ -76,7 +76,7 @@ python3 -m unittest discover -s scripts -p 'test_*.py'
 - [Google Research: Towards a science of scaling agent systems](https://research.google/blog/towards-a-science-of-scaling-agent-systems-when-and-why-agent-systems-work/) — 병렬 가능 작업은 중앙 조정으로 이득, 순차 작업은 손해.
 - [OpenAI: Rethinking skills and prompts for GPT-6 Astra](https://developers.openai.com/blog/rethinking-skills-and-prompts-for-gpt-6-astra) — 라우터형 스킬, 필요한 참고자료만 로드, done 기준 선정의.
 - [Claude Code: Subagents](https://code.claude.com/docs/en/sub-agents), [Codex: Subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents) — 네이티브 위임과 모델 선택.
-- 참고한 공개 스킬: [obra/superpowers](https://github.com/obra/superpowers)(작업별 fresh subagent + 2단계 리뷰), [benzhuk/claude-delegation](https://github.com/benzhuk/claude-delegation)(벤더 중립 tier, 부하 기반 동시 실행 예산), [Z-M-Huang/claude-codex](https://github.com/Z-M-Huang/claude-codex)(교차 벤더 리뷰).
+- 참고한 공개 스킬: [obra/superpowers](https://github.com/obra/superpowers)(작업별 fresh subagent + 2단계 리뷰), [benzhuk/claude-delegation](https://github.com/benzhuk/claude-delegation)(벤더 중립 tier, 부하 기반 동시 실행 예산), [Z-M-Huang/claude-codex](https://github.com/Z-M-Huang/claude-codex)(교차 벤더 리뷰), [forrestchang/andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills)(범위 한정·최소 코드 변경 원칙).
 
 - **레포** · <https://github.com/kiju7/dfx>
 - **이슈** · GitHub Issues

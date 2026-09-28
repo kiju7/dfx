@@ -10,6 +10,11 @@ Use the tool schema actually exposed in this session, not an assumed SDK:
 | Codex native tools exposing `spawn_agent` | Use the available schema; common fields include `message`, `agent_type`, `model`, `reasoning_effort`, `fork_context` | Use available `send_input`, `wait`, `close_agent` equivalents |
 | No native delegation tools | Work locally if that still achieves the request; disclose that delegation is unavailable |
 
+Dispatch independent agents together, then keep doing useful independent work
+while they run; do not also repeat exploration you delegated, and never predict
+or invent an agent's result. Agent reports are not shown to the user: relay the
+results and evidence that matter in your handoff.
+
 Never call Claude `Task`, invent a tool/role, or start a nested `codex exec`
 process to bypass missing native delegation. A list of specialist Markdown files
 does not register native agents. Express the specialty in the bounded task brief
@@ -47,9 +52,8 @@ API/schema contracts before parallel consumers implement them. Different files
 can still have dependency or build-artifact conflicts: a shared Git index, shared
 build outputs (`target/`, `dist/`, `node_modules/`), cross-package symbol
 resolution where one worker's unfinished code breaks another's compile, and
-shared config files (`package.json`, `pom.xml`). A real incident: six format
-handlers in disjoint directories were judged parallel-safe, and the run ended in
-cross-package test failures and lost updates. Give shared files a single writer;
+shared config files (`package.json`, `pom.xml`); six handlers in disjoint
+directories once ended in lost updates this way. Give shared files a single writer;
 serialize integration and builds. With split ownership, workers run only checks
 scoped to their own files; the coordinator runs the shared test suite and full
 build once after integration and returns deltas to the existing owner. Use separate worktrees when independent
@@ -61,12 +65,13 @@ Each task needs only the fields that help its owner:
 
 ```text
 Goal: user-visible result or specific question
-Context: relevant requirements, decisions, file/symbol pointers
+Context: relevant requirements, decisions, file/symbol pointers, ready inputs
 Write scope: permitted files/modules, existing user changes to preserve
-Inputs/dependencies: what is ready and what must be awaited
 Done when: observable acceptance criteria and relevant checks
-Return: changes/findings, evidence, unresolved items and proposed handoffs
-Constraints: applicable instructions and permissions; no recursive delegation
+Return: one line per item, no prose: changes/findings, evidence (command +
+        1-2 key output lines, never full logs), unresolved items, handoffs
+Constraints: change principles (request scope only, minimum code), applicable
+             instructions and permissions; no recursive delegation
 ```
 
 The owner may refine its implementation after reading the code. If the goal,

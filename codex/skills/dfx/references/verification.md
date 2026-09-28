@@ -15,6 +15,12 @@ only supports what it exercises. Do not weaken acceptance criteria, remove faili
 tests, or relabel an unexecuted check as passing to obtain a clean result. Separate
 pre-existing environment failures from failures introduced by the change.
 
+Default review: after all edits and checks, one fresh reviewer examines the full
+diff once. Per-task review is reserved for shared contracts or schemas that later
+work builds on, or slices that are hard to revert. Skip it for small, clear
+changes or when the user says no review; still self-verify. Reviewers report
+out-of-scope edits and unrequested abstractions as `minor` findings.
+
 Use a fresh reviewer for changes where independent judgment has value. Give it
 the user intent, diff/base reference, relevant files and test commands/results;
 do not prime it with the implementer's conclusion. It should examine the actual
